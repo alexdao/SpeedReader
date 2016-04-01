@@ -22,7 +22,7 @@ A sub-problem of distributed file systems are their performance, especially with
 
 The distributed file system is envisioned as a number of closely-located servers operating on Linux run on commodity hardware. Similar to the Google File System, requests for data are routed through a single master server that serves only metadata. 
 
-To optimize the file system for variable-size files, DDDFS takes the counter-intuitive approach of storing large files on the same machine and distributing small files across as many machines as possible. We argue that distributing the Disk-IO for small files across multiple machines will increase the speed of disk-accesses sufficiently to bottleneck the network. We make the assumption that the commodity hardware is utilizing spinning-drive disks, which often have small-file write-performance of under 8 MB/s, which is roughly on-par with the 72 Mbps average network speed in the United States. 
+To optimize the file system for variable-size files, DDDFS takes the counter-intuitive approach of storing large files on the same machine and distributing small files across as many machines as possible. We argue that distributing the Disk-IO for small files across multiple machines will increase the speed of disk-accesses to use the network more optimally. We make the assumption that the commodity hardware is utilizing spinning-drive disks, which often have small-file write-performance of under 8 MB/s, which is roughly on-par with the 72 Mbps average network speed in the United States. 
 
 Adding detailed diagnostic data to a distributed file system involves the following main steps:
 
@@ -34,7 +34,7 @@ Adding detailed diagnostic data to a distributed file system involves the follow
 	\end{enumerate}
 \item Addition of file logs for every file stored on each slave server
 	\begin{enumerate}
-	\item These file logs contains every modification and access to the files, including the timestamp, user, write/read
+	\item These file logs contains every modification and access to the files, including the timestamp, user, and write/read
 	\item These file logs do not contain any data as DDDFS is not meant to be a version control system
 	\end{enumerate}
 \end{enumerate}
