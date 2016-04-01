@@ -7,6 +7,7 @@
 
 \usepackage{amsmath}
 \usepackage[margin=1.5in]{geometry}
+\usepackage{hyperref}
 
 \begin{document}
 \maketitle
@@ -16,7 +17,7 @@ Recently, there has been a large shift towards storing large amounts of data in 
 
 Such a file system would provide important diagnostic information for job scheduling. If a user had a batch of jobs to be completed, they could be ordered in such a way that minimized the number of conflicts with concurrent users, based on the data provided by the DDDFS. Additionally, such data could be collected on the client-side for analysis on the usage the data within the file system, which could prove useful.
 
-A sub-problem of distributed file systems are their performance, especially with regards to variable-size files. The Google File System, for example, is highly optimized for large files. Using such a system with small files is both space-inefficient and slow. 
+A sub-problem of distributed file systems are their performance, especially with regards to variable-size files. The Google File System\textsuperscript{[1]}, for example, is highly optimized for large files. Using such a system with small files is both space-inefficient and slow. 
 
 \section{Methodology} 
 
@@ -45,6 +46,14 @@ These are two new ideas introduced by DDDFS. First is the distribution of small 
 
 \section{Related Work}
 
+\begin{enumerate}
+\item \href{https://www.eecs.harvard.edu/cs261/papers/sandberg85.pdf}{Design and Implementation of the Sun Network Filesystem}: One of the first implementations of remote access filesystems. 
+\item \href{http://www.cs.duke.edu/courses/spring16/compsci510/resources/papers/gfs-sosp2003.pdf}{The Google Filesystem}: Provides a good starting point for the architecture of the file system. 
+\item \href{https://www.eecs.harvard.edu/cs261/papers/afs.pdf}{Scale and Performance in a Distributed File System}: Another implementation and analysis of a DFS. Also includes an interesting idea about aggregation of files into volumes that we may be able to build upon.
+\item \href{https://www.eecs.harvard.edu/cs261/papers/sandberg85.pdf}{Fast, Cloud-scale Block Storage}: An example of current developments of storage on the cloud scale.
+\item \href{http://storageconference.us/2010/Papers/MSST/Shvachko.pdf}{The Hadoop Distributed File System}: File System designed to store large datasets. Characterized by the partitioning of data and computations in parallel.
+\end{enumerate}
+
 \section{Research Plan Timeline}
 
 Benchmarking existing distributed file system performance for comparison. This involves benchmarking disk-io and network speeds. 
@@ -71,6 +80,15 @@ Consolidation of implementations
 
 - Wednesday, April 20, 2016
 
-\section{Resources}
+\section{Necessary Resources}
 
+\begin{enumerate}
+\item Implementations of a variety of existing file systems
+\item A platform that can mimic a distributed file server. Ideally, given an interface to such a server, we would implement our algorithm over it.
+\end{enumerate}
+
+\section{References}
+[1] S. Ghemawat, H. Gobioff, S. Leung. ``The Google file system,'' In Proc.
+of ACM Symposium on Operating Systems Principles, Lake George,
+NY, Oct 2003, pp 29–43.
 \end{document}
