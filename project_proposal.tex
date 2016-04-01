@@ -1,20 +1,24 @@
 \documentclass{article}
-\title{Project Proposal: Implementation of Fold Operator Theory (FOT) and DISCO to determine the NMR structure of homo-oligomeric proteins}
+\title{CS510 Project Proposal:  Distributed File System}
 \date{\today}
-\author{Alex Dao and Chia-chieh Chu}
+\author{Alex Dao, Jiawei Zhang, and Danny Oh}
 
 \usepackage{amsmath}
 \usepackage[margin=1.5in]{geometry}
 
 \begin{document}
 \maketitle
-Nuclear magnetic resonance (NMR) spectroscopy is critical for the structure determination in protein molecule\footnote{Wishart, D.S., B.D. Sykes, and F.M. Richards, The chemical shift index: a fast and simple method for the assignment of protein secondary structure through NMR spectroscopy. Biochemistry, 1992. 31(6): p. 1647-51.}. NMR spectroscopy can detect the relative interaction between molecules to obtain different NMR restraints. The structure of sample proteins can be built by NMR restraints with the minimization of global energy. However, in comparison with monomeric proteins, the structure of homo-oligomeric proteins, which consists of several subunits, is difficult to be determined because of the identical chemical shift from different subunits. A developed technique DISCO\footnote{Martin, J. W., Yan, A. K., Bailey-Kellogg, C., Zhou, P., \& Donald, B. R. (2011). A graphical method for analyzing distance restraints using residual dipolar couplings for structure determination of symmetric protein homo-oligomers. Protein Science : A Publication of the Protein Society, 20(6), 970–985. doi:10.1002/pro.620}\footnote{Martin, J. W., Yan, A. K., Bailey-Kellogg, C., Zhou, P., \& Donald, B. R. (2011). A Geometric Arrangement Algorithm for Structure Determination of Symmetric Protein Homo-Oligomers from NOEs and RDCs. Journal of Computational Biology, 18(11), 1507–1523. doi:10.1089/cmb.2011.0173}
-is introduced to determine the symmetric homo-oligomers by various NMR restraints (like RDCs, distance restrain NOEs, and disulfide bounds)\footnote{Patrick N. Reardon, Harvey Sage, S. Moses Dennison, Jeffrey W. Martin, Bruce R. Donald, S. Munir Alam, Barton F. Haynes, and Leonard D. Spicer
-Structure of an HIV-1–neutralizing antibody target, the lipid-bound gp41 envelope membrane proximal region trimer
-PNAS 2014 111 (4) 1391-1396; published ahead of print January 13, 2014, doi:10.1073/pnas.1309842111}. In order to construct the oligomeric structure from DISCO, a defined subunit of protein is required. In previous studies, Donald’s lab proposed using FOT to search for distinct folds which satisfy the restraints, preventing being trapped in local energy minima\footnote{Martin, J. W., Zhou, P. and Donald, B. R. (2015), Systematic solution to homo-oligomeric structures determined by NMR. Proteins. doi: 10.1002/prot.24768}. Here we want to use FOT to generate the subunit structure for DISCO and determine the possible homo-oligomeric protein structure.
 
-A secondary aim we wish to explore and possibly implement would be to apply DEEPer/EPIC\footnote{Hallen, M. A., Keedy, D. A., \& Donald, B. R. (2013). Dead-End Elimination with Perturbations (“DEEPer”): A provable protein design algorithm with continuous sidechain and backbone flexibility. Proteins, 81(1), 18–39. doi:10.1002/prot.24150} style algorithms to structurally prune folds, targeting very large homo-oligomeric proteins, prior to determining NMR structure. Such an implementation would be useful when the potential configuration space grows large, to determine potential candidates for a minimization of global energy. 
+\section{Problem}
 
-Finally, we may also explore building an end-to-end, automated program to determine the NMR structure. Existing methods require manual input in between intermediate steps, so such a tool would prove useful for frequent computations of NMR structures.
+\section{Importance of problem}
+
+\section{Methodology}
+
+\section{Related Work}
+
+\section{Research Plan Timeline}
+
+\section{Resources}
 
 \end{document}
