@@ -1,4 +1,6 @@
 \documentclass{article}
+\setlength{\parskip}{\baselineskip}%
+
 \title{CS510 Project Proposal: Detailed Diagnostic Distributed File System}
 \date{\today}
 \author{Alex Dao, Jiawei Zhang, and Danny Oh}
@@ -14,12 +16,60 @@ Recently, there has been a large shift towards storing large amounts of data in 
 
 Such a file system would provide important diagnostic information for job scheduling. If a user had a batch of jobs to be completed, they could be ordered in such a way that minimized the number of conflicts with concurrent users, based on the data provided by the DDDFS. Additionally, such data could be collected on the client-side for analysis on the usage the data within the file system, which could prove useful.
 
+A sub-problem of distributed file systems are their performance, especially with regards to variable-size files. The Google File System, for example, is highly optimized for large files. Using such a system with small files is both space-inefficient and slow. 
+
 \section{Methodology} 
-Why is this approach new?
+
+The distributed file system is envisioned as a number of closely-located servers operating on Linux run on commodity hardware. Similar to the Google File System, requests for data are routed through a single master server that serves only metadata. 
+
+To optimize the file system for variable-size files, DDDFS takes the counter-intuitive approach of storing large files on the same machine and distributing small files across as many machines as possible. We argue that distributing the Disk-IO for small files across multiple machines will increase the speed of disk-accesses sufficiently to bottleneck the network. We make the assumption that the commodity hardware is utilizing spinning-drive disks, which often have small-file write-performance of under 8 MB/s, which is roughly on-par with the 72 Mbps average network speed in the United States. 
+
+Adding detailed diagnostic data to a distributed file system involves the following main steps:
+
+\begin{enumerate}
+\item Addition of access logs (metadata) stored on a logging server (separate from master, which only serves requests)
+	\begin{enumerate}
+	\item The logging server continually queries slave servers and compiles the metadata
+	\item There is no need for master to communicate to the logging server as master communicates to the slave servers (who serve data), which the logging server queries. 
+	\end{enumerate}
+\item Addition of file logs for every file stored on each slave server
+	\begin{enumerate}
+	\item These file logs contains every modification and access to the files, including the timestamp, user, write/read
+	\item These file logs do not contain any data as DDDFS is not meant to be a version control system
+	\end{enumerate}
+\end{enumerate}
+
+Additionally, the logging server also generates access data for the distributed file system's own use and has the ability to move small files between slave servers (and update master server metadata) in order to optimize small-file access performance. 
+
+These are two new ideas introduced by DDDFS. First is the distribution of small files across machines to decrease net latency when a number of small files are requested. Second is the addition of the logging server whose singular task is to serve metadata about file accesses to clients to improve their file-access scheduling. 
 
 \section{Related Work}
 
 \section{Research Plan Timeline}
+
+Benchmarking existing distributed file system performance for comparison. This involves benchmarking disk-io and network speeds. 
+
+- Friday, April 8, 2016
+
+Design mechanism for communication by client to master, master to slaves, and logging to slaves. 
+
+- Wednesday, April 13, 2016
+
+Design small-file distribution algorithm
+
+- Wednesday, April 13, 2016
+
+Implement communications
+
+- Monday, April 18, 2016
+
+Implement file distribution algorithm
+
+- Monday, April 18, 2016
+
+Consolidation of implementations
+
+- Wednesday, April 20, 2016
 
 \section{Resources}
 
