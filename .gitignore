@@ -1,4 +1,5 @@
-project_proposal.log
-project_proposal.pdf
-project_proposal.synctex.gz
-project_proposal.aux
+*.log
+*.pdf
+*.gz
+*.aux
+*.out
