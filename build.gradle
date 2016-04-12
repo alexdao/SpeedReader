@@ -1,0 +1,14 @@
+group 'DDDFS'
+version '0.0.0'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'redis.clients:jedis:2.7.2'
+}
