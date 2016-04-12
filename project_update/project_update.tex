@@ -13,12 +13,22 @@
 \maketitle
 
 \section{Problem}
+Recently, there has been a large shift towards storing large amounts of data in remote data centers, oftentimes distributed across many locations and hardware. Many current distributed file systems offer a layer of abstraction between a user and the distribution of the data, so that the user only experiences a file system like that on a Unix machine. However, in some cases, it would be useful for the user to actively see specifically which workers hold the data within a file system and how many concurrent users are requesting access to that file. 
+
+Such a file system would provide important diagnostic information for job scheduling. If a user had a batch of jobs to be completed, they could be ordered in such a way that minimized the number of conflicts with concurrent users, based on the data provided by the DDDFS. Additionally, such data could be collected on the client-side for analysis on the usage the data within the file system, which could prove useful.
+
+A sub-problem of distributed file systems are their performance, especially with regards to variable-size files. The Google File System\textsuperscript{[1]}, for example, is highly optimized for large files. Using such a system with small files is both space-inefficient and slow. 
 
 \section{Goals}
 
+
 \section{Progress So Far}
 
+
 \section{Related Work}
+
+
 \subsection{HDFS}
+
 
 \end{document}
