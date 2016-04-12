@@ -7,6 +7,7 @@
 
 \usepackage{amsmath}
 \usepackage[margin=1.5in]{geometry}
+\usepackage{setspace}
 \usepackage{hyperref}
 
 \begin{document}
@@ -20,15 +21,20 @@ Such a file system would provide important diagnostic information for job schedu
 A sub-problem of distributed file systems are their performance, especially with regards to variable-size files. The Google File System\textsuperscript{[1]}, for example, is highly optimized for large files. Using such a system with small files is both space-inefficient and slow. 
 
 \section{Goals}
-
+\begin{enumerate}
+\item Ability to query detailed read/write information over a variable time period or a specific time period
+\item Implement re-balancing algorithms on the master node to optimize for future reads or writes, based on the previous item. For example, if there happened to be numerous reads on Sundays at noon, then that data could be automatically replicated on more servers for better performance for concurrent accesses. This allows for increased performance on a smaller amount of hardware. 
+\item Ability to query information about specific nodes that data is stored on, such as average file access latency, hardware type, location, etc. 
+\item Implement basic functionality for this diagnostic layer on an existing data structure store (Redis)
+\end{enumerate}
 
 \section{Progress So Far}
 
 
 \section{Related Work}
-
-
 \subsection{HDFS}
+The Hadoop Distributed File System (HDFS) is a distributed, fault-tolerant file system designed to run on low-cost commodity hardware, which is accessed via command line inputs. This file system is built around a write-once-read-many model, similar to the applications that our project is optimizing for.
 
+HDFS is comprised of interconnected clusters of nodes 
 
 \end{document}
