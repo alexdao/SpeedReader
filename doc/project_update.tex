@@ -14,11 +14,11 @@
 \maketitle
 
 \section{Problem}
-Recently, there has been a large shift towards storing large amounts of data in remote data centers, oftentimes distributed across many locations and hardware. Many current distributed file systems offer a layer of abstraction between a user and the distribution of the data, so that the user only experiences a file system like that on a Unix machine. However, in some cases, it would be useful for the user to actively see specifically which workers hold the data within a file system and how many concurrent users are requesting access to that file. 
+Recently, there has been a large shift towards storing large amounts of data in remote data centers, oftentimes distributed across many locations and hardware. As with all databases, load balancing is a big consideration. While there are many ways that load balancing is currently handled, we would like to make this one of the primary concerns of our file system. We envision a file system that can leverage its metadata to automatically scale the amount of replication for any information stored in the system. As long as the space and performance overhead of the increase in metadata is reasonable, such information could be used to load balance effectively. For example, machine learning algorithms could be used to predict spikes in access to ensure that there is no drop in performance. 
 
-Such a file system would provide important diagnostic information for job scheduling. If a user had a batch of jobs to be completed, they could be ordered in such a way that minimized the number of conflicts with concurrent users, based on the data provided by the DDDFS. Additionally, such data could be collected on the client-side for analysis on the usage the data within the file system, which could prove useful.
+The biggest challenge we foresee is feasibility for small files. Often, small files are liable bottlenecks, as they can be a key file that many users need to access. However, we do not want the metadata to be large relative to such files - such a file system would not be able to support a database of small files. First, we will see if we can keep add the metadata and implement the load-balancing, then consider the problem of small files.
 
-A sub-problem of distributed file systems are their performance, especially with regards to variable-size files. The Google File System\textsuperscript{[1]}, for example, is highly optimized for large files. Using such a system with small files is both space-inefficient and slow. 
+We would also like to see if providing detailed information (outlined in Goals section) about individual nodes is possible. If it was possible to do this effectively, it may be possible to create a load balancing algorithm that takes even more data into account.
 
 \section{Goals}
 \begin{enumerate}
