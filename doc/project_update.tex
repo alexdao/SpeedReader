@@ -22,13 +22,72 @@ A sub-problem of distributed file systems are their performance, especially with
 
 \section{Goals}
 \begin{enumerate}
-\item Ability to query detailed read/write information over a variable time period or a specific time period
+\item Ability to query detailed read/write information over a variable time period (last n accesses) or a specific time period
 \item Implement re-balancing algorithms on the master node to optimize for future reads or writes, based on the previous item. For example, if there happened to be numerous reads on Sundays at noon, then that data could be automatically replicated on more servers for better performance for concurrent accesses. This allows for increased performance on a smaller amount of hardware. 
 \item Ability to query information about specific nodes that data is stored on, such as average file access latency, hardware type, location, etc. 
 \item Implement basic functionality for this diagnostic layer on an existing data structure store (Redis)
 \end{enumerate}
 
 \section{Progress So Far}
+
+\subsection{Infrastructure}
+
+The master server that handles all requests was created using Spark, a lightweight Java web framework. Requests (read, write, or metadata modification) are sent through the HTTP protocol. HTTP was chosen over FTP due to simplicity in implementation as well as potential pipelinability. 
+
+Just as in GFS, all metadata is stored in RAM and periodically flushed to disk. Redis (with Jedis Java driver) was used. Redis offers fast hashtable, list, and set storage, which are essential to our DDDFS implementation. 
+
+Java was chosen over C and C++ for its ease of use. 
+
+\subsection{Implementation}
+
+To implement the master server, the following Redis maps were used:
+
+\begin{enumerate}
+\item read: LRU list of the filenames of the last 1000 read requests
+\item write: LRU list of the filenames of the last 1000 write requests
+\item originalSlave: hashtable mapping from path to slave server written to upon file creation
+\item slaves: hashtable mapping from path to slave servers that contain copies of the file, including the original slave
+\item slaveUses: LRU list of the last 1000 slaves accesses for any reason
+\end{enumerate}
+
+\subsubsection{Writing}
+
+Writing is the most simple operation. If the file being written does not exist, the least popular existing slave is chosen and the file is written to the slave. 
+
+Whether the file previously exists or not, the write is pushed onto the 'write' Redis list. 
+
+If the file previously existed, the file is disseminated to all slaves that also own the file. 
+
+\subsubsection{Reading}
+
+For every read request, the read is pushed onto the 'read' Redis list. 
+
+There are two possible ways to determine the slave from which to read from:
+
+\begin{enumerate}
+\item Choose a random slave from the 'slaves' hashtable for the file
+\item Choose the least popular slave contained within the 'slaves' hashtable for the file
+\end{enumerate}
+
+The first method allows for faster slave-selection but can result in bottlenecking a potentially busy slave. The second method allows for best balancing of slave usage but it can potentially be resource-intensive to find the least popular slave. 
+
+\subsubsection{Modification}
+
+The current implementation does not support file metadata modification such as changing a file's location. These features' implementations are orthogonal to DDDFS's desired features and are not a priority. 
+
+\subsubsection{Balancing}
+
+The plan is to only perform balancing for read requests. The read LRU list is used to generate a map from file to count (in the last 1000 requests). The current implementation attempts to maintain 1 slave for every 100 reads (arbitrarily set) + 1. For example, for 150 reads in the last 1000 requests will result in desiring 1+1=2 slaves.  
+
+If the desired number of slaves is greater than the current number of slaves, slaves are added from the pool of least popular slaves (in terms of total requests). 
+
+If the desired number of slaves is less than the current number of slaves, (desired - current) slaves are arbitrarily removed for the file. 
+
+Either way, the changes then propagate to the added/removed slaves. 
+
+\subsubsection{Consistency}
+
+As our implementation relies on Redis's locks and doesn't utilize the order in which requests are applied, the entire system's consistency is eventual. 
 
 
 \section{Related Work}
