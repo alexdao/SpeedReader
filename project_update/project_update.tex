@@ -33,8 +33,20 @@ A sub-problem of distributed file systems are their performance, especially with
 
 \section{Related Work}
 \subsection{HDFS}
-The Hadoop Distributed File System (HDFS) is a distributed, fault-tolerant file system designed to run on low-cost commodity hardware, which is accessed via command line inputs. This file system is built around a write-once-read-many model, similar to the applications that our project is optimizing for.
+The Hadoop Distributed File System (HDFS) is a distributed, fault-tolerant file system designed to run on low-cost commodity hardware, which is accessed via command line inputs. This file system is built around a write-once-read-many model, similar to the applications that our project is optimizing for \cite{HDFS}.
 
-HDFS is comprised of interconnected clusters of nodes 
+HDFS is comprised of interconnected clusters of nodes. Each cluster contains a single \emph{NameNode} that manages file system namespace and regulates client access to files, similar to many other file systems following a master-slave approach \cite{HDFS}. To simplify things, our research project will focus on a distributed file system where all I/O must go through a single master. 
+
+Data nodes in HDFS support rebalancing if the free space on a data node falls too low or if a sudden increase in demand for a given file occurs. However, no functionality exists for pre-emptive rebalancing based on past history of reads. In addition, since most data nodes within a cluster typically reside in the same location, there is no consideration given towards balancing to optimize for variances in performance for different data centers, such as network latency, hardware performance, etc. Our project focuses on the analysis and load balancing which account for these factors. 
+
+\newpage
+\begin{thebibliography}{10}
+
+\bibitem{HDFS} Jeffrey J. Hanson
+\newblock An introduction to the Hadoop Distributed File System
+\newblock \textit{developerWorks}
+\newblock IBM. 1 February 2011. 
+
+\end{thebibliography}
 
 \end{document}
