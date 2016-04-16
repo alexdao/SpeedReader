@@ -10,6 +10,7 @@ import java.util.*;
 public class RedisService {
     private Jedis jedis;
     private Random random;
+    public final int NUM_OF_SLAVES = 10;
 
     public RedisService() {
         random = new Random();
@@ -27,21 +28,25 @@ public class RedisService {
         jedis.lpush("slaveUses", slave); // add to slave being used
     }
 
-    public void write(String path) {
-        // choose optimal location if new file
-        if (!jedis.hexists("originalSlave", path)) {
-            String leastPopularSlave = leastPopularSlave();
-            jedis.hset("originalSlave", path, leastPopularSlave);
-            jedis.hset("slaves", path, leastPopularSlave);
-            jedis.lpush("slaveUses", leastPopularSlave); // add to slave being used
-            System.out.println("Created file on " + leastPopularSlave + " with path "+ path);
-        }
+    public void write(String name) {
+        // TODO - write dissemination
+        // always assumes that write is a create
 
-        // push into write queue
-        jedis.lpush("write", path);
-        System.out.println("Writing file with path " + path);
+        // append timestamp and random int - basic guarantee of uniqueness
+        String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
+        String key = prepend + name;
 
-        // perform write dissemination TODO
+        // choose random location for new write
+        int chosenSlave = random.nextInt(10);
+        String chosenSlaveString = Integer.toString(chosenSlave);
+
+        // set the slave of the original copy
+        jedis.set(key, chosenSlaveString);
+
+        // add to slave set
+        jedis.sadd(key, chosenSlaveString);
+
+        System.out.println("Writing file with name " + name + " to server " + chosenSlaveString + " with unique key " + key);
     }
 
     public void readBalance() {
