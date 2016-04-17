@@ -3,23 +3,66 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by jiaweizhang on 4/16/16.
  */
 public class TestApplication {
+    private final String FILENAME = "small.txt";
+
+
     public static void main(String args[]) {
         TestApplication app = new TestApplication();
         app.start();
     }
 
     private void start() {
-        writeFile("file1");
-        writeFile("file2");
-        readFile("file1");
-        readFile("file2");
-        readFile("file1");
-        readFile("file1");
-        readFile("file1");
+        List<String> lines = getLines();
+
+        for (String line : lines) {
+            String[] arr = line.split("\\s+");
+            switch (arr[0]) {
+                case "t":
+                    try {
+                        Thread.sleep(Integer.parseInt(arr[1])*1000);
+                    } catch(InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    }
+                    break;
+                case "r":
+                    readFile(arr[1]);
+                    break;
+                case "w":
+                    writeFile(arr[1]);
+                    break;
+                default:
+                    System.out.println("Unrecognized code: "+ arr[0]);
+                    break;
+            }
+        }
+        System.out.println("Test finished");
+    }
+
+    private List<String> getLines() {
+        String directory = "src/test/resources/" + FILENAME;
+        //String directory = "/src/main/test/resources/" + "large.txt";
+
+        List<String> lines = new ArrayList<String>();
+        try(BufferedReader br = new BufferedReader(new FileReader(directory))) {
+            String line = br.readLine();
+
+            while (line != null) {
+                lines.add(line);
+                line = br.readLine();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lines;
     }
 
     private void writeFile(String name) {
@@ -32,7 +75,6 @@ public class TestApplication {
         }
 
         String str = result.getBody();
-        System.out.println("\nTesting write: ");
         System.out.println(str);
     }
 
@@ -46,7 +88,6 @@ public class TestApplication {
         }
 
         String str = result.getBody();
-        System.out.println("\nTesting read: ");
         System.out.println(str);
     }
 }
