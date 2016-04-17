@@ -12,4 +12,5 @@ repositories {
 dependencies {
     compile 'redis.clients:jedis:2.7.2'
     compile 'com.sparkjava:spark-core:2.3'
+    compile 'com.mashape.unirest:unirest-java:1.4.9'
 }
