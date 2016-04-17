@@ -21,6 +21,7 @@ public class TestApplication {
     }
 
     private void start() {
+        reset();
         List<String> lines = getLines();
 
         for (String line : lines) {
@@ -38,6 +39,9 @@ public class TestApplication {
                     break;
                 case "w":
                     writeFile(arr[1]);
+                    break;
+                case "f":
+                    getFileLocations();
                     break;
                 default:
                     System.out.println("Unrecognized code: "+ arr[0]);
@@ -82,6 +86,34 @@ public class TestApplication {
         HttpResponse<String> result = null;
         try {
             result = Unirest.get("http://localhost:8080/files/" + name)
+                    .asString();
+        } catch (UnirestException e) {
+            e.printStackTrace();
+        }
+
+        String str = result.getBody();
+        System.out.println(str);
+    }
+
+    private void getFileLocations() {
+        HttpResponse<String> result = null;
+        try {
+            result = Unirest.get("http://localhost:8080/admin/filelocations")
+                    .asString();
+        } catch (UnirestException e) {
+            e.printStackTrace();
+        }
+
+        String str = result.getBody();
+        System.out.println();
+        System.out.println(str);
+        System.out.println();
+    }
+
+    private void reset() {
+        HttpResponse<String> result = null;
+        try {
+            result = Unirest.get("http://localhost:8080/admin/flush")
                     .asString();
         } catch (UnirestException e) {
             e.printStackTrace();

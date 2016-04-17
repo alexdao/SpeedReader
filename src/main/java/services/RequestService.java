@@ -17,6 +17,16 @@ public class RequestService {
     private void setupEndpoints() {
         port(8080);
 
+        get("/admin/flush", (request, response) -> {
+            r.flush();
+            System.out.println("Flushed redis");
+            return "Flushed redis";
+        });
+
+        get("/admin/filelocations", (request, response) -> {
+            return r.getFileLocations();
+        });
+
         get("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Read: "+ fileName);

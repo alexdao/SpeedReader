@@ -9,3 +9,5 @@ t 1
 r file2
 t 1
 r file3
+t 1
+f

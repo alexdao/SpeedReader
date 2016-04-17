@@ -21,6 +21,10 @@ public class RedisService {
         System.out.println("Connected to Redis");
     }
 
+    public void flush() {
+        jedis.flushDB();
+    }
+
     public int read(String name) {
         // perform name mapping - assumes no duplicates
         String key = map.get(name);
@@ -69,7 +73,7 @@ public class RedisService {
         String originalKey = "original"+key;
         jedis.set(originalKey, chosenServerString);
 
-        // add to sever set
+        // add to server set
         jedis.sadd(key, chosenServerString);
 
         System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
@@ -152,5 +156,20 @@ public class RedisService {
                 return Integer.toString(randInt);
             }
         }
+    }
+
+    public String getFileLocations() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("File locations: \n");
+        for (String name : map.keySet()) {
+            String key = map.get(name);
+            Set<String> servers = jedis.smembers(key);
+            sb.append(name + ": ");
+            for (String server : servers) {
+                sb.append(server + " ");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }
