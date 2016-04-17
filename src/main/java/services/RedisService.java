@@ -12,23 +12,45 @@ public class RedisService {
     private Random random;
     public final int NUM_OF_SLAVES = 10;
 
+    // just for test
+    Map<String, String> map = new HashMap<String, String>();
+
     public RedisService() {
         random = new Random();
         jedis = new Jedis("localhost", 6379);
         System.out.println("Connected to Redis");
     }
 
-    public void read(String path) {
-        // push into read queue
-        jedis.lpush("read", path);
-        System.out.println("Reading file with path "+ path);
-        // TODO choose least popular or random slave to read from?
-        String slave = findSlave(path);
-        System.out.println("Reading from slave "+ slave);
-        jedis.lpush("slaveUses", slave); // add to slave being used
+    public int read(String name) {
+        // perform name mapping - assumes no duplicates
+        String key = map.get(name);
+
+        if (key == null) {
+            System.out.println("File does not exist");
+            return -1;
+        }
+
+        // randomly select slave to read from
+        String chosenServer = jedis.srandmember(key);
+
+        // get double representation of timestamp
+        double ts = System.currentTimeMillis();
+
+        // track reads for a file and where they're stored and when
+        String fileToServerKey = "fileToServer"+key;
+        jedis.zadd(fileToServerKey, ts, chosenServer);
+
+        // track servers and what files were read when
+        jedis.zadd(chosenServer, ts, key);
+
+        // add to list to keep track of its reads
+        jedis.lpush("reads", key);
+
+        System.out.println("Reading file with name "+ name + " from server " + chosenServer);
+        return Integer.parseInt(chosenServer);
     }
 
-    public void write(String name) {
+    public int write(String name) {
         // TODO - write dissemination
         // always assumes that write is a create
 
@@ -36,109 +58,99 @@ public class RedisService {
         String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
         String key = prepend + name;
 
+        // just for testing
+        map.put(name, key);
+
         // choose random location for new write
-        int chosenSlave = random.nextInt(10);
-        String chosenSlaveString = Integer.toString(chosenSlave);
+        int chosenServer = random.nextInt(NUM_OF_SLAVES);
+        String chosenServerString = Integer.toString(chosenServer);
 
-        // set the slave of the original copy
-        jedis.set(key, chosenSlaveString);
+        // set the server of the original copy
+        String originalKey = "original"+key;
+        jedis.set(originalKey, chosenServerString);
 
-        // add to slave set
-        jedis.sadd(key, chosenSlaveString);
+        // add to sever set
+        jedis.sadd(key, chosenServerString);
 
-        System.out.println("Writing file with name " + name + " to server " + chosenSlaveString + " with unique key " + key);
+        System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
+        return chosenServer;
     }
 
     public void readBalance() {
-        // get last 1000 files read
-        List<String> paths = jedis.lrange("read", 0, 999);
+        // look through last 1000 reads - higher in production
+        List<String> lastReads = jedis.lrange("reads", 0, 999);
 
-        Map<String, Integer> counts = new HashMap<String, Integer>();
-        for (String path : paths) {
-            if (!counts.containsKey(path)) {
-                counts.put(path, 1);
+        Map<String, Integer> readCounts = new HashMap<String, Integer>();
+        for (String read : lastReads) {
+            if (readCounts.containsKey(read)) {
+                readCounts.put(read, readCounts.get(read)+1);
+            } else {
+                readCounts.put(read, 1);
+            }
+        }
+
+        // determines how many copies are desired
+        Map<String, Integer> dupCounts = new HashMap<String, Integer>();
+        for (String file : readCounts.keySet()) {
+            if (readCounts.get(file) >= 100) {
+                dupCounts.put(file, NUM_OF_SLAVES);
+            } else {
+                // always at least 1
+                dupCounts.put(file, readCounts.get(file) % 10 + 1);
+            }
+        }
+
+        for (String key : readCounts.keySet()) {
+            // check how many copies currently exist
+            String originalKey = "original"+key;
+            String originalServer = jedis.get(originalKey);
+            // ensure this is never deleted
+
+            // servers on which the file exists
+            Set<String> allServers = jedis.smembers(key);
+
+            int desiredDups = dupCounts.get(key);
+            if (desiredDups == allServers.size()) {
+                // do nothing if desired number is same as actual
                 continue;
-            }
-            counts.put(path, counts.get(path) + 1);
-        }
+            } else if (desiredDups > allServers.size()) {
+                // add servers randomly
+                int toAdd = desiredDups - allServers.size();
+                for (int i=0; i<toAdd; i++) {
+                    String randomServer = randomNotIntSet(NUM_OF_SLAVES, allServers);
+                    jedis.sadd(key, randomServer);
+                }
+            } else {
+                // remove servers randomly
+                int toRemove = allServers.size() - desiredDups;
+                List<String> availableToRemove = new ArrayList<String>(allServers);
 
-        // TODO no limit currently
-        // maintain 1 slave for every 100 reads
+                // ensures that original server can never be removed
+                availableToRemove.remove(originalServer);
+                for (int i=0; i<toRemove; i++) {
+                    Collections.shuffle(availableToRemove);
+                    String serverToRemove = availableToRemove.remove(0);
 
-        for (String path: counts.keySet()) {
-            String slaves = jedis.hget("slaves", path);
-            String[] arr = slaves.split(",");
-            int currentSlaves = arr.length;
-            int desiredSlaves = counts.get(path)/100 + 1;
-            rebalanceSlaves(path, arr, desiredSlaves - currentSlaves);
-            System.out.println("Adding " + (desiredSlaves - currentSlaves) + " slaves for read rebalancing");
-        }
-
-    }
-
-    public void rebalanceSlaves(String path, String[] arr, int toAdd) {
-        if (toAdd == 0) {
-            return;
-        } else if (toAdd > 0) {
-            // add extra slaves
-            StringBuilder sb = new StringBuilder();
-            for (int i=0; i<arr.length; i++) {
-                sb.append(arr[i] +",");
-            }
-            for (int i=0; i<toAdd; i++) {
-                sb.append(leastPopularSlave()+",");
-            }
-            sb.deleteCharAt(sb.length()-1); // delete last comma
-            jedis.hset("slaves", path, sb.toString());
-            // file dissemination TODO
-        } else if (toAdd < 0) {
-            // remove slaves random for now, (most popular ones later) TODO
-            Set<String> toRemove = new HashSet<String>();
-            for (int i=0; i<(-toAdd); i++) {
-                toRemove.add(findSlave(path));
-            }
-            StringBuilder sb = new StringBuilder();
-            for (int i=0; i<arr.length; i++) {
-                if (!toRemove.contains(arr[i])) {
-                    sb.append(arr[i] +",");
+                    jedis.srem(key, serverToRemove);
                 }
             }
-            sb.deleteCharAt(sb.length()-1); // delete last comma
-            jedis.hset("slaves", path, sb.toString());
-            // file dissemination TODO
         }
+        System.out.println("Finished read rebalancing");
     }
 
-    private String findSlave(String path) {
-        // find random for now. TODO
-        String slaves = jedis.hget("slaves", path);
-        String[] arr = slaves.split(",");
-        return arr[random.nextInt(arr.length)];
+    public void serverBalance() {
+        // TODO
+
+        System.out.println("Finished server rebalancing");
     }
 
-    private String leastPopularSlave() {
-        // TODO have to actually iterate
-        // cache this value and only re-calculate every once 'n' new writes
-        List<String> slaves = jedis.lrange("slaveUses", 0, 999);
-        Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
-        for (String slave : slaves) {
-            int intSlave = Integer.parseInt(slave);
-            if (!counts.containsKey(intSlave)) {
-                counts.put(intSlave, 1);
-                continue;
-            }
-            counts.put(intSlave, counts.get(intSlave) + 1);
-        }
-
-        int lowestSlave = 0;
-        int lowest = Integer.MAX_VALUE;
-        for (int i : counts.keySet()) {
-            if (counts.get(i) < lowest) {
-                lowest = counts.get(i);
-                lowestSlave = i;
+    private String randomNotIntSet(int range, Set<String> existing) {
+        // simple to just go until you hit
+        while (true) {
+            int randInt = random.nextInt(range);
+            if (!existing.contains(Integer.toString(randInt))) {
+                return Integer.toString(randInt);
             }
         }
-        return Integer.toString(lowestSlave);
     }
-
 }

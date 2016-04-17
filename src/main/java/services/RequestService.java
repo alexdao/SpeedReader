@@ -18,15 +18,21 @@ public class RequestService {
         port(8080);
 
         get("/files/*", (request, response) -> {
-            System.out.println("Read: "+ request.pathInfo());
-            r.read(request.pathInfo());
-            return request.pathInfo();
+            String fileName = request.pathInfo().substring(7);
+            System.out.println("Read: "+ fileName);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Reading file '"+fileName);
+            sb.append("' from server number " + r.read(fileName));
+            return sb.toString();
         });
 
         post("/files/*", (request, response) -> {
-            System.out.println("Write: "+ request.pathInfo());
-            r.write(request.pathInfo());
-            return request.pathInfo();
+            String fileName = request.pathInfo().substring(7);
+            System.out.println("Write: "+ fileName);
+            StringBuilder sb = new StringBuilder();
+            sb.append("Writing file '"+fileName);
+            sb.append("' to server number " + r.write(fileName));
+            return sb.toString();
         });
 
         put("/files/*", (request, response) -> {
