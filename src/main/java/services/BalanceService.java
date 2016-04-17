@@ -28,13 +28,13 @@ public class BalanceService {
         }, 10*1000, 10*1000);
 
 
-        // run every 60 seconds
+        // run every 22 seconds
         serverBalanceTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 serverBalance();
             }
-        }, 60*1000, 60*1000);
+        }, 22*1000, 22*1000);
     }
 
     private void readBalance() {

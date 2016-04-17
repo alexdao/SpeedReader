@@ -25,7 +25,7 @@ public class RedisService {
         jedis.flushDB();
     }
 
-    public int read(String name) {
+    public synchronized int read(String name) {
         // perform name mapping - assumes no duplicates
         String key = map.get(name);
 
@@ -37,15 +37,13 @@ public class RedisService {
         // randomly select slave to read from
         String chosenServer = jedis.srandmember(key);
 
-        // get double representation of timestamp
-        double ts = System.currentTimeMillis();
-
         // track reads for a file and where they're stored and when
         String fileToServerKey = "fileToServer"+key;
-        jedis.zadd(fileToServerKey, ts, chosenServer);
+        //jedis.zadd(fileToServerKey, ts, chosenServer);
 
-        // track servers and what files were read when
-        jedis.zadd(chosenServer, ts, key);
+        // add to server actions
+        long ts = System.currentTimeMillis();
+        jedis.lpush(chosenServer, Long.toString(ts));
 
         // add to list to keep track of its reads
         jedis.lpush("reads", key);
@@ -54,12 +52,13 @@ public class RedisService {
         return Integer.parseInt(chosenServer);
     }
 
-    public int write(String name) {
+    public synchronized int write(String name) {
         // TODO - write dissemination
         // always assumes that write is a create
 
         // append timestamp and random int - basic guarantee of uniqueness
-        String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
+        //String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
+        String prepend = Integer.toString(random.nextInt());
         String key = prepend + name;
 
         // just for testing
@@ -76,13 +75,24 @@ public class RedisService {
         // add to server set
         jedis.sadd(key, chosenServerString);
 
+        // add to server-file map
+        String serverMap = "server" + chosenServerString;
+        jedis.sadd(serverMap, key);
+
+        // add to server actions
+        long ts = System.currentTimeMillis();
+        jedis.lpush(chosenServerString, Long.toString(ts));
+
         System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
         return chosenServer;
     }
 
-    public void readBalance() {
+    public synchronized void readBalance() {
+        System.out.println("Started read rebalance");
         // look through last 100 reads - higher in production
-        List<String> lastReads = jedis.lrange("reads", 0, 99);
+        List<String> lastReads = jedis.lrange("reads", 0, 30);
+        //System.out.println(Arrays.toString(lastReads.toArray()));
+
 
         Map<String, Integer> readCounts = new HashMap<String, Integer>();
         for (String read : lastReads) {
@@ -112,6 +122,11 @@ public class RedisService {
 
             // servers on which the file exists
             Set<String> allServers = jedis.smembers(key);
+            System.out.print("File " + key + " currently exist on: " );
+            for (String s : allServers) {
+                System.out.print(s + " ");
+            }
+            System.out.println();
 
             int desiredDups = dupCounts.get(key);
             if (desiredDups == allServers.size()) {
@@ -121,9 +136,12 @@ public class RedisService {
                 // add servers randomly
                 int toAdd = desiredDups - allServers.size();
                 System.out.println("Adding " + toAdd + " servers for key " + key);
+                Set<String> availableToAdd = new HashSet<String>(allServers);
                 for (int i=0; i<toAdd; i++) {
-                    String randomServer = randomNotIntSet(NUM_OF_SLAVES, allServers);
+                    String randomServer = randomNotIntSet(NUM_OF_SLAVES, availableToAdd);
+                    availableToAdd.add(randomServer);
                     jedis.sadd(key, randomServer);
+                    jedis.sadd("server" + randomServer, key);
                 }
             } else {
                 // remove servers randomly
@@ -138,14 +156,72 @@ public class RedisService {
                     String serverToRemove = availableToRemove.remove(0);
 
                     jedis.srem(key, serverToRemove);
+                    jedis.srem("server" + serverToRemove, key);
                 }
             }
         }
         System.out.println("Finished read rebalancing");
     }
 
-    public void serverBalance() {
-        // TODO
+    public synchronized void serverBalance() {
+        System.out.println("Starting server rebalance");
+        Map<String, Double> averageReadCounts = new TreeMap<String, Double>();
+
+        String mostBusy = "0";
+        double mostBusyAvg = 0;
+        String leastBusy = "1";
+        double leastBusyAvg = Double.MAX_VALUE;
+        System.out.println("Rebalancing servers: ");
+        for (int i=0; i<NUM_OF_SLAVES; i++) {
+            long current = System.currentTimeMillis();
+
+            List<String> stringTimes = jedis.lrange(Integer.toString(i), 0, 49);
+            System.out.print("For server "+i+" in recent time, there have been " + stringTimes.size() + " reads at times ");
+            List<Long> times = new ArrayList<Long>();
+            for (String time : stringTimes) {
+                times.add(Long.parseLong(time));
+                System.out.print(time + " ");
+            }
+            System.out.println();
+
+            double average;
+            if (times.size() != 0) {
+                OptionalDouble averageDbl = times
+                        .stream()
+                        .mapToDouble(a -> a)
+                        .average();
+                average = averageDbl.getAsDouble();
+            } else {
+                average = 0;
+            }
+            if (average > mostBusyAvg) {
+                mostBusy = Integer.toString(i);
+                mostBusyAvg = average;
+            }
+            if (average < leastBusyAvg) {
+                leastBusy = Integer.toString(i);
+                leastBusyAvg = average;
+            }
+            averageReadCounts.put(Integer.toString(i), average);
+        }
+
+        // move random files from most busy to least busy
+
+        // get random file
+        String key = jedis.srandmember("server" + mostBusy);
+
+        if (key != null) {
+            // move to least busy server - doesn't matter if the server already has it
+            // done to reduce load on most loaded server
+            jedis.sadd(key, leastBusy);
+            jedis.sadd("server" + leastBusy, key);
+
+            // remove from old
+            jedis.srem(key, mostBusy);
+            jedis.srem("server" + mostBusy, key);
+
+            System.out.println("Moved file " + key + " from " + mostBusy + " to "+ leastBusy);
+        }
 
         System.out.println("Finished server rebalancing");
     }
