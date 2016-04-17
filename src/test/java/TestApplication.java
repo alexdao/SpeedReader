@@ -29,7 +29,7 @@ public class TestApplication {
                 case "t":
                     try {
                         Thread.sleep(Integer.parseInt(arr[1]));
-                    } catch(InterruptedException ex) {
+                    } catch (InterruptedException ex) {
                         Thread.currentThread().interrupt();
                     }
                     break;
@@ -43,7 +43,7 @@ public class TestApplication {
                     getFileLocations();
                     break;
                 default:
-                    System.out.println("Unrecognized code: "+ arr[0]);
+                    System.out.println("Unrecognized code: " + arr[0]);
                     break;
             }
         }
@@ -54,7 +54,7 @@ public class TestApplication {
         String directory = "src/test/resources/" + FILENAME;
 
         List<String> lines = new ArrayList<String>();
-        try(BufferedReader br = new BufferedReader(new FileReader(directory))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(directory))) {
             String line = br.readLine();
 
             while (line != null) {

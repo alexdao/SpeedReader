@@ -25,7 +25,7 @@ public class BalanceService {
             public void run() {
                 readBalance();
             }
-        }, 10*1000, 10*1000);
+        }, 10 * 1000, 10 * 1000);
 
 
         // run every 22 seconds
@@ -34,7 +34,7 @@ public class BalanceService {
             public void run() {
                 serverBalance();
             }
-        }, 22*1000, 22*1000);
+        }, 22 * 1000, 22 * 1000);
     }
 
     private void readBalance() {
