@@ -58,7 +58,7 @@ public class RedisService {
 
         // append timestamp and random int - basic guarantee of uniqueness
         //String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
-        String prepend = Integer.toString(random.nextInt());
+        String prepend = Integer.toString(Math.abs(random.nextInt())) + "_";
         String key = prepend + name;
 
         // just for testing
@@ -90,7 +90,7 @@ public class RedisService {
     public synchronized void readBalance() {
         System.out.println("Started read rebalance");
         // look through last 100 reads - higher in production
-        List<String> lastReads = jedis.lrange("reads", 0, 30);
+        List<String> lastReads = jedis.lrange("reads", 0, 40);
         //System.out.println(Arrays.toString(lastReads.toArray()));
 
 
@@ -114,6 +114,7 @@ public class RedisService {
             }
         }
 
+        // TODO - separate removal so it always works
         for (String key : readCounts.keySet()) {
             // check how many copies currently exist
             String originalKey = "original"+key;
@@ -165,12 +166,11 @@ public class RedisService {
 
     public synchronized void serverBalance() {
         System.out.println("Starting server rebalance");
-        Map<String, Double> averageReadCounts = new TreeMap<String, Double>();
 
         String mostBusy = "0";
         double mostBusyAvg = 0;
         String leastBusy = "1";
-        double leastBusyAvg = Double.MAX_VALUE;
+        double leastBusyAvg = Long.MAX_VALUE;
         System.out.println("Rebalancing servers: ");
         for (int i=0; i<NUM_OF_SLAVES; i++) {
             long current = System.currentTimeMillis();
@@ -186,13 +186,9 @@ public class RedisService {
 
             double average;
             if (times.size() != 0) {
-                OptionalDouble averageDbl = times
-                        .stream()
-                        .mapToDouble(a -> a)
-                        .average();
-                average = averageDbl.getAsDouble();
+                average = times.get(times.size()-1); // get earliest
             } else {
-                average = 0;
+                average = 0; // not used to oldest
             }
             if (average > mostBusyAvg) {
                 mostBusy = Integer.toString(i);
@@ -202,7 +198,6 @@ public class RedisService {
                 leastBusy = Integer.toString(i);
                 leastBusyAvg = average;
             }
-            averageReadCounts.put(Integer.toString(i), average);
         }
 
         // move random files from most busy to least busy
