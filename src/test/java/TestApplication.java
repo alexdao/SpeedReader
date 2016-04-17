@@ -1,5 +1,4 @@
 import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 
@@ -12,8 +11,8 @@ import java.util.List;
  * Created by jiaweizhang on 4/16/16.
  */
 public class TestApplication {
-    private final String FILENAME = "small.txt";
-
+    //private final String FILENAME = "small.txt";
+    private final String FILENAME = "large.txt";
 
     public static void main(String args[]) {
         TestApplication app = new TestApplication();
@@ -29,7 +28,7 @@ public class TestApplication {
             switch (arr[0]) {
                 case "t":
                     try {
-                        Thread.sleep(Integer.parseInt(arr[1])*1000);
+                        Thread.sleep(Integer.parseInt(arr[1]));
                     } catch(InterruptedException ex) {
                         Thread.currentThread().interrupt();
                     }
@@ -53,7 +52,6 @@ public class TestApplication {
 
     private List<String> getLines() {
         String directory = "src/test/resources/" + FILENAME;
-        //String directory = "/src/main/test/resources/" + "large.txt";
 
         List<String> lines = new ArrayList<String>();
         try(BufferedReader br = new BufferedReader(new FileReader(directory))) {

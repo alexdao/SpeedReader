@@ -81,8 +81,8 @@ public class RedisService {
     }
 
     public void readBalance() {
-        // look through last 1000 reads - higher in production
-        List<String> lastReads = jedis.lrange("reads", 0, 999);
+        // look through last 100 reads - higher in production
+        List<String> lastReads = jedis.lrange("reads", 0, 99);
 
         Map<String, Integer> readCounts = new HashMap<String, Integer>();
         for (String read : lastReads) {
@@ -96,11 +96,11 @@ public class RedisService {
         // determines how many copies are desired
         Map<String, Integer> dupCounts = new HashMap<String, Integer>();
         for (String file : readCounts.keySet()) {
-            if (readCounts.get(file) >= 100) {
+            if (readCounts.get(file) >= 20) {
                 dupCounts.put(file, NUM_OF_SLAVES);
             } else {
                 // always at least 1
-                dupCounts.put(file, readCounts.get(file) % 10 + 1);
+                dupCounts.put(file, readCounts.get(file) / 2 + 1);
             }
         }
 
@@ -120,6 +120,7 @@ public class RedisService {
             } else if (desiredDups > allServers.size()) {
                 // add servers randomly
                 int toAdd = desiredDups - allServers.size();
+                System.out.println("Adding " + toAdd + " servers for key " + key);
                 for (int i=0; i<toAdd; i++) {
                     String randomServer = randomNotIntSet(NUM_OF_SLAVES, allServers);
                     jedis.sadd(key, randomServer);
@@ -127,6 +128,7 @@ public class RedisService {
             } else {
                 // remove servers randomly
                 int toRemove = allServers.size() - desiredDups;
+                System.out.println("Removing " + toRemove + " servers for key " + key);
                 List<String> availableToRemove = new ArrayList<String>(allServers);
 
                 // ensures that original server can never be removed

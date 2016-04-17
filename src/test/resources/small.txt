@@ -1,13 +1,13 @@
 w file1
-t 1
+t 1000
 w file2
-t 1
+t 1000
 w file3
-t 1
+t 1000
 r file1
-t 1
+t 1000
 r file2
-t 1
+t 1000
 r file3
-t 1
+t 1000
 f
