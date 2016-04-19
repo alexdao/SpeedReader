@@ -8,7 +8,7 @@ import java.util.*;
  * Created by jiaweizhang on 4/12/16.
  */
 public class RedisService {
-    public final int NUM_OF_SLAVES = 10;
+    private final int NUM_OF_SLAVES = 10;
     // just for test
     private Map<String, String> map = new HashMap<String, String>();
     private Jedis jedis;
@@ -20,11 +20,11 @@ public class RedisService {
         System.out.println("Connected to Redis");
     }
 
-    public void flush() {
+    void flush() {
         jedis.flushDB();
     }
 
-    public synchronized int read(String name) {
+    synchronized int read(String name) {
         // perform name mapping - assumes no duplicates
         String key = map.get(name);
 
@@ -51,7 +51,7 @@ public class RedisService {
         return Integer.parseInt(chosenServer);
     }
 
-    public synchronized int write(String name) {
+    synchronized int write(String name) {
         // TODO - write dissemination
         // always assumes that write is a create
 
@@ -86,7 +86,7 @@ public class RedisService {
         return chosenServer;
     }
 
-    public synchronized void readBalance() {
+    synchronized void readBalance() {
         System.out.println("Started read rebalance");
         // look through last 100 reads - higher in production
         List<String> lastReads = jedis.lrange("reads", 0, 40);
@@ -163,7 +163,7 @@ public class RedisService {
         System.out.println("Finished read rebalancing");
     }
 
-    public synchronized void serverBalance() {
+    synchronized void serverBalance() {
         System.out.println("Starting server rebalance");
 
         String mostBusy = "0";
@@ -230,7 +230,7 @@ public class RedisService {
         }
     }
 
-    public String getFileLocations() {
+    String getFileLocations() {
         StringBuilder sb = new StringBuilder();
         sb.append("File locations: \n");
         for (String name : map.keySet()) {
