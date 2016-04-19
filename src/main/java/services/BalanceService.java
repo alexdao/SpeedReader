@@ -11,6 +11,11 @@ public class BalanceService {
     private Timer readBalanceTimer;
     private Timer serverBalanceTimer;
 
+    // run every 10 seconds - in production much higher
+    private static final long readBalanceInterval = 10 * 1000;
+    // run every 22 seconds
+    private static final long serverBalanceInterval = 22 * 1000;
+
     public BalanceService(RedisService r) {
         this.r = r;
         readBalanceTimer = new Timer();
@@ -19,22 +24,20 @@ public class BalanceService {
     }
 
     private void startBalancers() {
-        // run every 10 seconds - in production much higher
         readBalanceTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 readBalance();
             }
-        }, 10 * 1000, 10 * 1000);
+        }, readBalanceInterval, readBalanceInterval);
 
 
-        // run every 22 seconds
         serverBalanceTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 serverBalance();
             }
-        }, 22 * 1000, 22 * 1000);
+        }, serverBalanceInterval, serverBalanceInterval);
     }
 
     private void readBalance() {
