@@ -75,7 +75,7 @@ sorting=ynt
 
 \begin{abstract}
 
-\noindent The Detailed Diagnostic Distributed File System (DDDFS) is a DFS that load balances based on the number of accesses to files and servers, rather than the storage capacity of servers. DDDFS begins to explore the ways that performance metrics, such as recent file accesses and server response times, can be used to balance load. In many file systems, load is balanced based on the proportion of free space - load balancers will move files so that the proportion of free space on each server is roughly equal. If a single file is accessed significantly more than others, it may become a performance bottleneck. We have envisioned the DDDFS in order to solve this problem. In this paper we describe the potential of DDDFS as well as an implementation of a single master server over Redis.
+\noindent The Detailed Diagnostic Distributed File System (DDDFS) is a DFS that load balances based on the number of accesses to files and servers, rather than the storage capacity of servers. DDDFS begins to explore the ways that performance metrics, such as recent file accesses and server response times, can be used to balance load. In many file systems, files are distributed based on the proportion of free space - load balancers will move files so that the proportion of free space on each server is roughly equal. If a single file is accessed significantly more than others, it may become a performance bottleneck. We have envisioned the DDDFS in order to solve this problem. In this paper we describe the potential of DDDFS as well as an implementation of a single DDDFS master server over Redis.
 
 \end{abstract}
 
@@ -86,7 +86,6 @@ sorting=ynt
 \begin{multicols}{2} % Two-column layout throughout the main article text
 
 \section{Introduction}
-
 Load balancing, responsible for distributing workloads to optimize resource use, is a core function provided with any cloud service. Most cloud services achieve this through a fairly simple routine: they monitor the health of its servers while using DNS round robin to select the healthy server to route to. While there are many aspects to performance in a distributed file system, we will focus on load balancing in this paper.\\\indent
 Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS) balance load in a familiar way: a central server sends heartbeats to its nodes, which in turn return statistics such as its storage capacity.  Using this information, the central server balances replicas such that the storage utilization of its nodes is as balanced as possible. The methods of achieving balancing without a large overhead involves many tactics including in-memory metadata to make operations occurring in the central server fast. We will refer to this well-explored form of load balancing as "storage load balancing".\\\indent
 Storage load balancing works well if there is the assumption that all files are accessed with similar frequency. In this case, the number of accesses to a server is proportional to the number of files it stores, so the accesses to the servers will be distributed evenly. However, there are many cases in which certain important files are accessed more frequently than others. In this case, the servers that store this file will have an increased share of accesses and may become a bottleneck. Thus, in this paper, we focus on "performance load balancing", which aims to balance the location and replication of files based on performance metrics, such as number of accesses or response times, rather than storage metrics. This will prevent bottlenecks occurring due to many accesses to a single file or server. Using Redis, an in-memory data structure store, we have implemented a simulation of a central server in DDDFS.
@@ -108,6 +107,8 @@ In addition to a mapping of each file to its original server, the master server 
 \subsection*{Load Balancing Design}
 We have conceived two operations for the DDDFS: file balancing and server balancing. For file balancing, the basic idea is to predict when a file will be read by many clients and to duplicate that file across many servers prior to that event. By doing so, clients can read in parallel, eliminating constraints imposed by network throughput or server performance. Server balancing focuses on a related idea when files on a specific server will be read by many clients. In this case, files are moved from the busy server to less busy servers. This should lead to the same performance improvements as file balancing. \\\indent
 It is necessary for DDDFS to keep track of recent reads by clients in its metadata in order to perform these two operations.  The file balancing operation determines the number of desired replicas for each file using the recent read metadata, and duplicates or deletes files accordingly. Servers designated to store duplicates are chosen at random among the cluster. In the simplest algorithm, a file's desired number of replicas is proportional to the number of recent reads. In our implementation, file balancing occurs every 10 seconds and server balancing occurs every 22 seconds. These intervals can be modified to fit the specific needs and read requests of each application. Thus, DDDFS has only eventual consistency, depending on both the balancing operations and when each slave schedules its actual file transactions. Such a model is fitting for a system with a large number of reads of unlinked data. By implementing these two operations with low performance and space overhead, we hope to show that performance load balancing should be a consideration for future distributed file systems. 
+
+Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead "performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.
 
 \section{Difficulties}
 Difficulties were encountered for performance measurement as there was no easy way of simulating a large number of clients in a short period of time. Java Spark does not handle concurrent HTTP requests well so certain requests are never received. A more durable and mature framework such as Java Spring could provide guarantees on receiving requests. 
@@ -161,7 +162,7 @@ Another limitation of the DDDFS is that there is currently no action verificatio
 Performance load balancing is a resource optimization technique with large potential that the DDDFS only begins to explore. If the metadata overhead is kept small enough, there are many unexplored ways to further improve performance. Furthermore, we need more concrete evidence of the potential for performance improvement using performance load balancing.
 
 \subsection*{Workload Analysis}
-The GFS paper claims that the disproportionate access of a single file occurred in some rare cases, but that this was not a concern. By benchmarking performance of existing distributed file systems and comparing the performance difference between a "regular" workload, a workload consisting of evenly distributed file accesses, and a workload with concentrated file accesses, we can see how much of a bottleneck concentrated file accesses can cause.
+The GFS paper claims that the disproportionate access of a single file occurred in some rare cases, but that this was not a concern [2]. By benchmarking performance of existing distributed file systems and comparing the performance difference between a "regular" workload, a workload consisting of evenly distributed file accesses, and a workload with concentrated file accesses, we can see how much of a bottleneck concentrated file accesses can cause.
 
 \subsection*{Rebalancing Algorithm}
 The rebalancing algorithms implemented for the DDDFS are extremely simple. It is possible to use different algorithms, or improve upon the existing ones so inefficient changes do not occur. For example, moving a file $x$ from server 1 to server 2, then replicating file $x$ on server 1 would be inefficient. More work should be spent on avoiding such cases. An example of a completely different algorithm would be using heuristics to predict future accesses and the number of desired replicas. Currently, in server rebalancing, we move a random file from the most busy server to the least busy. Instead of a randomly chosen file, we could move the most heavily accessed files (in near $O(1)$ find speed). In addition, read balancing and server balancing are currently both performed at fixed intervals. The balancing should ideally be performed during lulls of activity. As the actual balancing process across slave servers is expensive (due to I/O), balance detection and calculation should be performed often but only executed when deemed necessary. 
@@ -178,6 +179,10 @@ The ideal distributed file system would load balance so that there is a proporti
 %	REFERENCE LIST
 %----------------------------------------------------------------------------------------
 \begin{thebibliography}{99} % Bibliography - this is intentionally simple in this template
+\bibitem{Dynamic Load Balancing} Valeria Cardellini, Michele Colajanni, Philip S. Yu
+\newblock Dynamic Load Balancing on Web-server Systems
+\newblock \textit{1999 Internet Computing vol. 3, no. 3, pp. 28-39, May-June 1999}
+\newblock IEEE. 1999.
 
 \bibitem{GFS} Sanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung
 \newblock The Google File System
@@ -199,6 +204,7 @@ The ideal distributed file system would load balance so that there is a proporti
 
 \bibitem{Redis} Redis
 \newblock http://redis.io/
+
 \end{thebibliography}
 
 
