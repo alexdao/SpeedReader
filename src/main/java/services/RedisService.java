@@ -9,8 +9,10 @@ import java.util.*;
  */
 public class RedisService {
     private final int NUM_OF_SLAVES = 10;
+    // look through last 100 reads - higher in production
+    private final int READ_BALANCE_PAST_ACCESSES = 40;
     // just for test
-    private Map<String, String> map = new HashMap<String, String>();
+    private Map<String, String> map = new HashMap<>();
     private Jedis jedis;
     private Random random;
 
@@ -67,6 +69,10 @@ public class RedisService {
         int chosenServer = random.nextInt(NUM_OF_SLAVES);
         String chosenServerString = Integer.toString(chosenServer);
 
+        // add file to list of all files
+        // Note: (this key does not conflict with any others)
+        jedis.sadd("all_files", key);
+
         // set the server of the original copy
         String originalKey = "original" + key;
         jedis.set(originalKey, chosenServerString);
@@ -88,12 +94,17 @@ public class RedisService {
 
     synchronized void readBalance() {
         System.out.println("Started read rebalance");
-        // look through last 100 reads - higher in production
-        List<String> lastReads = jedis.lrange("reads", 0, 40);
+        List<String> lastReads = jedis.lrange("reads", 0, READ_BALANCE_PAST_ACCESSES);
         //System.out.println(Arrays.toString(lastReads.toArray()));
 
+        Map<String, Integer> readCounts = new HashMap<>();
 
-        Map<String, Integer> readCounts = new HashMap<String, Integer>();
+        //init all files to 1
+        Set<String> all_files = jedis.smembers("all_files");
+        for(String file : all_files){
+            readCounts.put(file, 1);
+        }
+
         for (String read : lastReads) {
             if (readCounts.containsKey(read)) {
                 readCounts.put(read, readCounts.get(read) + 1);
@@ -103,7 +114,7 @@ public class RedisService {
         }
 
         // determines how many copies are desired
-        Map<String, Integer> dupCounts = new HashMap<String, Integer>();
+        Map<String, Integer> dupCounts = new HashMap<>();
         for (String file : readCounts.keySet()) {
             if (readCounts.get(file) >= 20) {
                 dupCounts.put(file, NUM_OF_SLAVES);
@@ -136,7 +147,7 @@ public class RedisService {
                 // add servers randomly
                 int toAdd = desiredDups - allServers.size();
                 System.out.println("Adding " + toAdd + " servers for key " + key);
-                Set<String> availableToAdd = new HashSet<String>(allServers);
+                Set<String> availableToAdd = new HashSet<>(allServers);
                 for (int i = 0; i < toAdd; i++) {
                     String randomServer = randomNotIntSet(NUM_OF_SLAVES, availableToAdd);
                     availableToAdd.add(randomServer);
@@ -147,7 +158,7 @@ public class RedisService {
                 // remove servers randomly
                 int toRemove = allServers.size() - desiredDups;
                 System.out.println("Removing " + toRemove + " servers for key " + key);
-                List<String> availableToRemove = new ArrayList<String>(allServers);
+                List<String> availableToRemove = new ArrayList<>(allServers);
 
                 // ensures that original server can never be removed
                 availableToRemove.remove(originalServer);
@@ -176,7 +187,7 @@ public class RedisService {
 
             List<String> stringTimes = jedis.lrange(Integer.toString(i), 0, 49);
             System.out.print("For server " + i + " in recent time, there have been " + stringTimes.size() + " reads at times ");
-            List<Long> times = new ArrayList<Long>();
+            List<Long> times = new ArrayList<>();
             for (String time : stringTimes) {
                 times.add(Long.parseLong(time));
                 System.out.print(time + " ");

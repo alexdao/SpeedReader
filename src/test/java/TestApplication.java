@@ -11,8 +11,8 @@ import java.util.List;
  * Created by jiaweizhang on 4/16/16.
  */
 public class TestApplication {
-    private final String FILENAME = "small.txt";
-    //private final String FILENAME = "large.txt";
+    //private final String FILENAME = "small.txt";
+    private final String FILENAME = "large.txt";
 
     public static void main(String args[]) {
         TestApplication app = new TestApplication();

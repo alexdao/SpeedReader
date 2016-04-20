@@ -101,4 +101,4 @@ r file3
 t 200
 r file3
 t 200
-fs
+f
