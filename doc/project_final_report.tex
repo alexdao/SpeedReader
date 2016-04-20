@@ -62,7 +62,7 @@
 
 \begin{abstract}
 
-\noindent \lipsum[1] % Dummy abstract text
+\noindent h % Dummy abstract text
 
 \end{abstract}
 
@@ -74,24 +74,21 @@
 
 \section{Introduction}
 
-\lettrine[nindent=0em,lines=3]{L} orem ipsum dolor sit amet, consectetur adipiscing elit.
-\lipsum[2-3] % Dummy text
+  Load balancing, responsible for distributing workloads to optimize resource use, is a core function provided with any cloud service. Most cloud services achieve this through a fairly simple routine: they monitor the health of its servers while using DNS round robin to select the healthy server to route to. While there are many aspects to performance in a distributed file system, we will focus on load balancing in this paper.\\\indent
+Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS) balance load in a familiar way: a central server sends heartbeats to its nodes, which in turn return statistics such as its storage capacity.  Using this information, the central server balances replicas such that the storage utilization of its nodes is as balanced as possible. The methods of achieving balancing without a large overhead involves many tactics including in-memory metadata to make operations occurring in the central server fast. We will refer to this well-explored form of load balancing as ``storage load balancing".\\\indent
+  Storage load balancing works well if there is the assumption that all files are accessed with similar frequency. In this case, the number of accesses to a server is proportional to the number of files it stores, so the accesses to the servers will be distributed evenly. However, there are many cases in which certain important files are accessed more frequently than others. In this case, the servers that store this file will have an increased share of accesses and may become a bottleneck. Thus, in this paper, we focus on “performance load balancing”, which aims to balance the location and replication of files based on performance metrics, such as number of accesses or response times, rather than storage metrics. This will prevent bottlenecks occurring due to many accesses to a single file or server. Using Redis, an in-memory data structure store, we have implemented a simulation of a central server in DDDFS.
+ % Dummy text
 
 %------------------------------------------------
 
-\section{Methods}
+\section{Design Goals}
 
-Maecenas sed ultricies felis. Sed imperdiet dictum arcu a egestas. 
-\begin{compactitem}
-\item Donec dolor arcu, rutrum id molestie in, viverra sed diam
-\item Curabitur feugiat
-\item turpis sed auctor facilisis
-\item arcu eros accumsan lorem, at posuere mi diam sit amet tortor
-\item Fusce fermentum, mi sit amet euismod rutrum
-\item sem lorem molestie diam, iaculis aliquet sapien tortor non nisi
-\item Pellentesque bibendum pretium aliquet
-\end{compactitem}
-\lipsum[4] % Dummy text
+DDDFS is a file system based on HDFS that focuses purely on performance load balancing in a write-once read-many environment. Thus, the architecture is focused on read performance. The ideal file system will balance both performance load and storage load in order to truly optimize the use of resources. However, by showing that performance load and storage load can be balanced respectively, combining them naturally becomes a question of algorithmic feasibility, which would be left to future research.\\\indent
+
+Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead ``performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.\\\indent
+
+We have conceived two operations for the DDDFS: file balancing and server balancing. It is necessary for DDDFS to keep track of recent reads by clients in its metadata in order to perform these two operations. In the simplest algorithm, the more recent reads there are for a file, the greater the number of replicas. The file balancing operation determines the number of desired replicas for each file using metadata, and duplicates or deletes files accordingly. In the simplest algorithm, a file’s desired number of replicas is proportional to the number of recent reads. Server balancing, on the other hand, moves files from the most accessed servers to the least accessed servers. By implementing these two operations with low performance and space overhead, we hope to show that performance load balancing should be a consideration for future distributed file systems.
+
 
 %------------------------------------------------
 
