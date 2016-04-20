@@ -81,11 +81,14 @@ Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS
 
 %------------------------------------------------
 
-\section{Design Goals}
+\section{Implementation}
+\subsection*{Infrastructure}
 
 DDDFS is a file system based on HDFS that focuses purely on performance load balancing in a write-once read-many environment. Thus, the architecture is focused on read performance. The ideal file system will balance both performance load and storage load in order to truly optimize the use of resources. However, by showing that performance load and storage load can be balanced respectively, combining them naturally becomes a question of algorithmic feasibility, which would be left to future research.\\\indent
 
 Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead ``performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.\\\indent
+
+\subsection*{Design}
 
 We have conceived two operations for the DDDFS: file balancing and server balancing. It is necessary for DDDFS to keep track of recent reads by clients in its metadata in order to perform these two operations. In the simplest algorithm, the more recent reads there are for a file, the greater the number of replicas. The file balancing operation determines the number of desired replicas for each file using metadata, and duplicates or deletes files accordingly. In the simplest algorithm, a file’s desired number of replicas is proportional to the number of recent reads. Server balancing, on the other hand, moves files from the most accessed servers to the least accessed servers. By implementing these two operations with low performance and space overhead, we hope to show that performance load balancing should be a consideration for future distributed file systems.
 
