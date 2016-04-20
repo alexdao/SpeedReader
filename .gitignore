@@ -4,6 +4,7 @@
 *.aux
 *.out
 .idea/*
+dump.rdb
 
 
 # Created by https://www.gitignore.io/api/intellij,gradle
