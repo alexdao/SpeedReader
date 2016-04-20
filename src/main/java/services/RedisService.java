@@ -13,6 +13,7 @@ public class RedisService {
     private final int READ_BALANCE_PAST_ACCESSES = 40;
     // just for test
     private Map<String, String> map = new HashMap<>();
+
     private Jedis jedis;
     private Random random;
 
