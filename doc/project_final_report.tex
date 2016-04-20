@@ -79,9 +79,9 @@ sorting=ynt
 
 \section{Introduction}
 
-  Load balancing, responsible for distributing workloads to optimize resource use, is a core function provided with any cloud service. Most cloud services achieve this through a fairly simple routine: they monitor the health of its servers while using DNS round robin to select the healthy server to route to. While there are many aspects to performance in a distributed file system, we will focus on load balancing in this paper.\\\indent
-Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS) balance load in a familiar way: a central server sends heartbeats to its nodes, which in turn return statistics such as its storage capacity.  Using this information, the central server balances replicas such that the storage utilization of its nodes is as balanced as possible. The methods of achieving balancing without a large overhead involves many tactics including in-memory metadata to make operations occurring in the central server fast. We will refer to this well-explored form of load balancing as ``storage load balancing".\\\indent
-  Storage load balancing works well if there is the assumption that all files are accessed with similar frequency. In this case, the number of accesses to a server is proportional to the number of files it stores, so the accesses to the servers will be distributed evenly. However, there are many cases in which certain important files are accessed more frequently than others. In this case, the servers that store this file will have an increased share of accesses and may become a bottleneck. Thus, in this paper, we focus on “performance load balancing”, which aims to balance the location and replication of files based on performance metrics, such as number of accesses or response times, rather than storage metrics. This will prevent bottlenecks occurring due to many accesses to a single file or server. Using Redis, an in-memory data structure store, we have implemented a simulation of a central server in DDDFS.
+  Load balancing, responsible for distributing workloads to optimize resource use, is a core function provided with any cloud service. Most cloud services achieve this through a fairly simple routine: they monitor the health of its servers while using DNS round robin to select the healthy server to route to [4]. While there are many aspects to performance in a distributed file system, we will focus on load balancing in this paper.\\\indent
+Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS)[1][3] balance load in a familiar way: a central server sends heartbeats to its nodes, which in turn return statistics such as its storage capacity.  Using this information, the central server balances replicas such that the storage utilization of its nodes is as balanced as possible. The methods of achieving balancing without a large overhead involves many tactics including in-memory metadata to make operations occurring in the central server fast. We will refer to this well-explored form of load balancing as ``storage load balancing".\\\indent
+  Storage load balancing works well if there is the assumption that all files are accessed with similar frequency. In this case, the number of accesses to a server is proportional to the number of files it stores, so the accesses to the servers will be distributed evenly. However, there are many cases in which certain important files are accessed more frequently than others. In this case, the servers that store this file will have an increased share of accesses and may become a bottleneck. Thus, in this paper, we focus on ``performance load balancing", which aims to balance the location and replication of files based on performance metrics, such as number of accesses or response times, rather than storage metrics. This will prevent bottlenecks occurring due to many accesses to a single file or server. Using Redis, an in-memory data structure store, we have implemented a simulation of a central server in DDDFS.
  % Dummy text
 
 %------------------------------------------------
@@ -91,7 +91,7 @@ Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS
 
 DDDFS is a file system based on HDFS that focuses purely on performance load balancing in a write-once read-many environment. Thus, the architecture is focused on read performance. The ideal file system will balance both performance load and storage load in order to truly optimize the use of resources. However, by showing that performance load and storage load can be balanced respectively, combining them naturally becomes a question of algorithmic feasibility, which would be left to future research.\\\indent
 
-Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead ``performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.\\\indent
+Like HDFS, all metadata will be stored in memory on the central server [3], while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead ``performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.\\\indent
 
 \subsection*{Design}
 
@@ -133,7 +133,7 @@ e = mc^2
 Performance load balancing is a resource optimization technique with a lot of potential that the DDDFS only begins to explore. If the metadata overhead is kept small enough, there are a lot of unexplored ways to further improve performance. Furthermore, we need more concrete evidence of the potential for performance improvement using performance load balancing.
 
 \subsection*{Workload Analysis}
-The GFS paper claims that the disproportionate access of a single file occurred in some rare cases, but that this was not a concern. By benchmarking performance of existing distributed file systems and comparing the performance difference between a "regular" workload, a workload consisting of evenly distributed file accesses, and a workload with concentrated file accesses, we can see how much of a bottleneck concentrated file accesses can cause.
+The GFS paper claims that the disproportionate access of a single file occurred in some rare cases, but that this was not a concern [1]. By benchmarking performance of existing distributed file systems and comparing the performance difference between a "regular" workload, a workload consisting of evenly distributed file accesses, and a workload with concentrated file accesses, we can see how much of a bottleneck concentrated file accesses can cause.
 
 \subsection*{Rebalancing Algorithm}
 The rebalancing algorithms implemented for the DDDFS are extremely simple. It is possible to use different algorithms, or improve upon the existing ones so inefficient changes do not occur. For example, moving a file $x$ from server 1 to server 2, then replicating file $x$ on server 1 would be inefficient. More work should be spent on avoiding such cases. An example of a completely different algorithm would be using heuristics to predict future accesses and the number of desired replicas.
@@ -164,6 +164,10 @@ The ideal distributed file system would load balance so that there is a proporti
 \newblock \textit{MSST '10 Proceedings of the 2010 IEEE 26th Symposium on Mass Storage Systems and Technologies}
 \newblock Yahoo!. 2010.
 
+\bibitem{Dynamic Load Balancing} Valeria Cardellini, Michele Colajanni, Philip S. Yu
+\newblock Dynamic Load Balancing on Web-server Systems
+\newblock \textit{1999 Internet Computing vol. 3, no. 3, pp. 28-39, May-June 1999}
+\newblock IEEE. 1999.
 \end{thebibliography}
 
 %----------------------------------------------------------------------------------------
