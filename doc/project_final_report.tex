@@ -1,7 +1,12 @@
 \documentclass[twoside]{article}
 
 \usepackage{lipsum} % Package to generate dummy text throughout this template
-
+\usepackage[
+backend=biber,
+style=alphabetic,
+sorting=ynt
+]{biblatex}
+\bibliography{ref}
 \usepackage[sc]{mathpazo} % Use the Palatino font
 \usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
 \linespread{1.05} % Line spacing - Palatino needs more space between lines
@@ -62,7 +67,7 @@
 
 \begin{abstract}
 
-\noindent h % Dummy abstract text
+\noindent The Detailed Diagnostic Distributed File System (DDDFS) is a DFS that load balances based on the number of accesses to files and servers, rather than the storage capacity of servers. DDDFS begins to explore the ways that performance metrics, such as recent file accesses and server response times, can be used to balance load. In many file systems, load is balanced based on the proportion of free space - load balancers will move files so that the proportion of free space on each server is roughly equal. If a single file is accessed significantly more than others, it may become a performance bottleneck. We have envisioned the DDDFS in order to solve this problem. In this paper we describe the potential of DDDFS as well as an implementation of a single master server over Redis.
 
 \end{abstract}
 
@@ -90,7 +95,7 @@ Like HDFS, all metadata will be stored in memory on the central server, while th
 
 \subsection*{Design}
 
-We have conceived two operations for the DDDFS: file balancing and server balancing. It is necessary for DDDFS to keep track of recent reads by clients in its metadata in order to perform these two operations. In the simplest algorithm, the more recent reads there are for a file, the greater the number of replicas. The file balancing operation determines the number of desired replicas for each file using metadata, and duplicates or deletes files accordingly. In the simplest algorithm, a file’s desired number of replicas is proportional to the number of recent reads. Server balancing, on the other hand, moves files from the most accessed servers to the least accessed servers. By implementing these two operations with low performance and space overhead, we hope to show that performance load balancing should be a consideration for future distributed file systems.
+We have conceived two operations for the DDDFS: file balancing and server balancing. It is necessary for DDDFS to keep track of recent reads by clients in its metadata in order to perform these two operations.  The file balancing operation determines the number of desired replicas for each file using the recent read metadata, and duplicates or deletes files accordingly. In the simplest algorithm, a file’s desired number of replicas is proportional to the number of recent reads. Server balancing, on the other hand, moves files from the most accessed servers to the least accessed servers. By implementing these two operations with low performance and space overhead, we hope to show that performance load balancing should be a consideration for future distributed file systems.
 
 
 %------------------------------------------------
@@ -123,29 +128,26 @@ e = mc^2
 
 %------------------------------------------------
 
-\section{Discussion}
+\section{Future Work}
 
-\subsection{Subsection One}
+Performance load balancing is a resource optimization technique with a lot of potential that the DDDFS only begins to explore. If the metadata overhead is kept small enough, there are a lot of unexplored ways to further improve performance. Furthermore, we need more concrete evidence of the potential for performance improvement using performance load balancing.
 
-\lipsum[7] % Dummy text
+\subsection*{Workload Analysis}
+The GFS paper claims that the disproportionate access of a single file occurred in some rare cases, but that this was not a concern. By benchmarking performance of existing distributed file systems and comparing the performance difference between a "regular" workload, a workload consisting of evenly distributed file accesses, and a workload with concentrated file accesses, we can see how much of a bottleneck concentrated file accesses can cause.
 
-\subsection{Subsection Two}
+\subsection*{Rebalancing Algorithm}
+The rebalancing algorithms implemented for the DDDFS are extremely simple. It is possible to use different algorithms, or improve upon the existing ones so inefficient changes do not occur. For example, moving a file $x$ from server 1 to server 2, then replicating file $x$ on server 1 would be inefficient. More work should be spent on avoiding such cases. An example of a completely different algorithm would be using heuristics to predict future accesses and the number of desired replicas.
 
-\lipsum[8] % Dummy text
+\subsection*{Integration with HDFS}
+Since DDDFS was designed with the workload of HDFS in mind, it would be interesting to observe the operation of a version of HDFS that uses performance load balancing. By benchmarking such a system, it would be possible to observe the performance overhead (though we have already deduced that it should be low) as well as the performance benefits, if there are any. Furthermore, we would be able to see if the DDDFS file balancing is fast enough to be performed in low activity periods. Such a system would be the most compelling argument for the efficacy of performance load balancing.`	
+
+\subsection*{Combining Performance and Storage LB}
+The ideal distributed file system would load balance so that there is a proportional amount of data and accesses on each server. While this may not always be possible, there should be algorithmic methods to get as close as possible. Finding an efficient way to do so would be a step towards creating an ideal DFS. 
 
 %----------------------------------------------------------------------------------------
 %	REFERENCE LIST
 %----------------------------------------------------------------------------------------
 
-\begin{thebibliography}{99} % Bibliography - this is intentionally simple in this template
-
-\bibitem[Figueredo and Wolf, 2009]{Figueredo:2009dg}
-Figueredo, A.~J. and Wolf, P. S.~A. (2009).
-\newblock Assortative pairing and life history strategy - a cross-cultural
-  study.
-\newblock {\em Human Nature}, 20:317--330.
- 
-\end{thebibliography}
 
 %----------------------------------------------------------------------------------------
 
