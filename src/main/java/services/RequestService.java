@@ -23,26 +23,20 @@ public class RequestService {
             return "Flushed redis";
         });
 
-        get("/admin/filelocations", (request, response) -> {
-            return r.getFileLocations();
-        });
+        get("/admin/filelocations", (request, response) -> r.getFileLocations());
 
         get("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Read: " + fileName);
-            StringBuilder sb = new StringBuilder();
-            sb.append("Reading file '" + fileName);
-            sb.append("' from server number " + r.read(fileName));
-            return sb.toString();
+            return ("Reading file '" + fileName) +
+                    "' from server number " + r.read(fileName);
         });
 
         post("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Write: " + fileName);
-            StringBuilder sb = new StringBuilder();
-            sb.append("Writing file '" + fileName);
-            sb.append("' to server number " + r.write(fileName));
-            return sb.toString();
+            return ("Writing file '" + fileName) +
+                    "' to server number " + r.write(fileName);
         });
 
         put("/files/*", (request, response) -> {

@@ -8,9 +8,11 @@ import java.util.*;
  * Created by jiaweizhang on 4/12/16.
  */
 public class RedisService {
-    public final int NUM_OF_SLAVES = 10;
+    private final int NUM_OF_SLAVES = 10;
+    // look through last 100 reads - higher in production
+    private final int READ_BALANCE_PAST_ACCESSES = 40;
     // just for test
-    private Map<String, String> map = new HashMap<String, String>();
+    private Map<String, String> map = new HashMap<>();
     private Jedis jedis;
     private Random random;
 
@@ -20,11 +22,11 @@ public class RedisService {
         System.out.println("Connected to Redis");
     }
 
-    public void flush() {
+    void flush() {
         jedis.flushDB();
     }
 
-    public synchronized int read(String name) {
+    synchronized int read(String name) {
         // perform name mapping - assumes no duplicates
         String key = map.get(name);
 
@@ -51,7 +53,7 @@ public class RedisService {
         return Integer.parseInt(chosenServer);
     }
 
-    public synchronized int write(String name) {
+    synchronized int write(String name) {
         // TODO - write dissemination
         // always assumes that write is a create
 
@@ -66,6 +68,10 @@ public class RedisService {
         // choose random location for new write
         int chosenServer = random.nextInt(NUM_OF_SLAVES);
         String chosenServerString = Integer.toString(chosenServer);
+
+        // add file to list of all files
+        // Note: (this key does not conflict with any others)
+        jedis.sadd("all_files", key);
 
         // set the server of the original copy
         String originalKey = "original" + key;
@@ -86,14 +92,19 @@ public class RedisService {
         return chosenServer;
     }
 
-    public synchronized void readBalance() {
+    synchronized void readBalance() {
         System.out.println("Started read rebalance");
-        // look through last 100 reads - higher in production
-        List<String> lastReads = jedis.lrange("reads", 0, 40);
+        List<String> lastReads = jedis.lrange("reads", 0, READ_BALANCE_PAST_ACCESSES);
         //System.out.println(Arrays.toString(lastReads.toArray()));
 
+        Map<String, Integer> readCounts = new HashMap<>();
 
-        Map<String, Integer> readCounts = new HashMap<String, Integer>();
+        //init all files to 1
+        Set<String> all_files = jedis.smembers("all_files");
+        for(String file : all_files){
+            readCounts.put(file, 1);
+        }
+
         for (String read : lastReads) {
             if (readCounts.containsKey(read)) {
                 readCounts.put(read, readCounts.get(read) + 1);
@@ -103,7 +114,7 @@ public class RedisService {
         }
 
         // determines how many copies are desired
-        Map<String, Integer> dupCounts = new HashMap<String, Integer>();
+        Map<String, Integer> dupCounts = new HashMap<>();
         for (String file : readCounts.keySet()) {
             if (readCounts.get(file) >= 20) {
                 dupCounts.put(file, NUM_OF_SLAVES);
@@ -136,7 +147,7 @@ public class RedisService {
                 // add servers randomly
                 int toAdd = desiredDups - allServers.size();
                 System.out.println("Adding " + toAdd + " servers for key " + key);
-                Set<String> availableToAdd = new HashSet<String>(allServers);
+                Set<String> availableToAdd = new HashSet<>(allServers);
                 for (int i = 0; i < toAdd; i++) {
                     String randomServer = randomNotIntSet(NUM_OF_SLAVES, availableToAdd);
                     availableToAdd.add(randomServer);
@@ -147,7 +158,7 @@ public class RedisService {
                 // remove servers randomly
                 int toRemove = allServers.size() - desiredDups;
                 System.out.println("Removing " + toRemove + " servers for key " + key);
-                List<String> availableToRemove = new ArrayList<String>(allServers);
+                List<String> availableToRemove = new ArrayList<>(allServers);
 
                 // ensures that original server can never be removed
                 availableToRemove.remove(originalServer);
@@ -163,7 +174,7 @@ public class RedisService {
         System.out.println("Finished read rebalancing");
     }
 
-    public synchronized void serverBalance() {
+    synchronized void serverBalance() {
         System.out.println("Starting server rebalance");
 
         String mostBusy = "0";
@@ -176,7 +187,7 @@ public class RedisService {
 
             List<String> stringTimes = jedis.lrange(Integer.toString(i), 0, 49);
             System.out.print("For server " + i + " in recent time, there have been " + stringTimes.size() + " reads at times ");
-            List<Long> times = new ArrayList<Long>();
+            List<Long> times = new ArrayList<>();
             for (String time : stringTimes) {
                 times.add(Long.parseLong(time));
                 System.out.print(time + " ");
@@ -230,7 +241,7 @@ public class RedisService {
         }
     }
 
-    public String getFileLocations() {
+    String getFileLocations() {
         StringBuilder sb = new StringBuilder();
         sb.append("File locations: \n");
         for (String name : map.keySet()) {
