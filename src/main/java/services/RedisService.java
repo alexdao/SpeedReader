@@ -58,39 +58,60 @@ public class RedisService {
         // TODO - write dissemination
         // always assumes that write is a create
 
-        // append timestamp and random int - basic guarantee of uniqueness
-        //String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
-        String prepend = Integer.toString(Math.abs(random.nextInt())) + "_";
-        String key = prepend + name;
+        String trykey = map.get(name);
 
-        // just for testing
-        map.put(name, key);
+        if (trykey == null) {
+            // append timestamp and random int - basic guarantee of uniqueness
+            //String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
+            String prepend = Integer.toString(Math.abs(random.nextInt())) + "_";
+            String key =  prepend + name;
 
-        // choose random location for new write
-        int chosenServer = random.nextInt(NUM_OF_SLAVES);
-        String chosenServerString = Integer.toString(chosenServer);
+            // just for testing
+            map.put(name, key);
 
-        // add file to list of all files
-        // Note: (this key does not conflict with any others)
-        jedis.sadd("all_files", key);
+            // choose random location for new write
+            int chosenServer = random.nextInt(NUM_OF_SLAVES);
+            String chosenServerString = Integer.toString(chosenServer);
 
-        // set the server of the original copy
-        String originalKey = "original" + key;
-        jedis.set(originalKey, chosenServerString);
+            // add file to list of all files
+            // Note: (this key does not conflict with any others)
+            jedis.sadd("all_files", key);
 
-        // add to server set
-        jedis.sadd(key, chosenServerString);
+            // set the server of the original copy
+            String originalKey = "original" + key;
+            jedis.set(originalKey, chosenServerString);
 
-        // add to server-file map
-        String serverMap = "server" + chosenServerString;
-        jedis.sadd(serverMap, key);
+            // add to server set
+            jedis.sadd(key, chosenServerString);
 
-        // add to server actions
-        long ts = System.currentTimeMillis();
-        jedis.lpush(chosenServerString, Long.toString(ts));
+            //add key to server
+            jedis.sadd(chosenServerString, name);
 
-        System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
-        return chosenServer;
+            // add to server-file map
+            String serverMap = "server" + chosenServerString;
+            jedis.sadd(serverMap, key);
+
+            // add to server actions
+            long ts = System.currentTimeMillis();
+            jedis.lpush(chosenServerString, Long.toString(ts));
+
+            System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
+            return chosenServer;
+        } else {
+            Set<String> servers = jedis.smembers(trykey);
+            for (String server : servers) {
+                long ts = System.currentTimeMillis();
+                jedis.lpush(server, Long.toString(ts));
+
+                // add to list to keep track of its reads
+                jedis.lpush("reads", trykey);
+
+                System.out.println("Reading file with name " + name + " from server " + server);
+                return -1;
+            }
+
+            return -1;
+        }
     }
 
     synchronized void readBalance() {
