@@ -1,5 +1,6 @@
 package services;
 
+import org.eclipse.jetty.server.Server;
 import redis.clients.jedis.Jedis;
 
 import java.util.*;
@@ -14,6 +15,11 @@ public class RedisService {
     // Follower list
     private List<FollowerService> followers;
 
+    private static final String SERVER_PREFIX = "server";
+    private static final String ORIGINAL_PREFIX = "original";
+    private static final String ALL_FILES = "all_files";
+    private static final String READS = "reads";
+
     private Jedis jedis;
     private Random random;
 
@@ -27,7 +33,7 @@ public class RedisService {
 
     private void initializeFollowers() {
         followers = new ArrayList<>();
-        for(int i=0; i< NUM_OF_SLAVES; i++) {
+        for (int i = 0; i < NUM_OF_SLAVES; i++) {
             followers.add(new FollowerService());
         }
     }
@@ -36,82 +42,81 @@ public class RedisService {
         jedis.flushDB();
     }
 
-    synchronized int read(String name) {
+    synchronized int read(String fileName) {
         // perform name mapping - assumes no duplicates
-        String key = map.get(name);
+        String key = map.get(fileName);
 
         if (key == null) {
             System.out.println("File does not exist");
             return -1;
         }
 
-        // randomly select slave to read from
+        // randomly select follower to read from
         String chosenServer = jedis.srandmember(key);
-
-        // track reads for a file and where they're stored and when
-        String fileToServerKey = "fileToServer" + key;
-        //jedis.zadd(fileToServerKey, ts, chosenServer);
+        int followerNum = Integer.parseInt(chosenServer.substring(SERVER_PREFIX.length()));
+        List<String> fileData = followers.get(followerNum).read(fileName);
+        // TODO: Resolve fileData
 
         // add to server actions
         long ts = System.currentTimeMillis();
         jedis.lpush(chosenServer, Long.toString(ts));
 
         // add to list to keep track of its reads
-        jedis.lpush("reads", key);
+        jedis.lpush(READS, key);
 
-        System.out.println("Reading file with name " + name + " from server " + chosenServer);
+        System.out.println("Reading file with name " + fileName + " from server " + chosenServer);
         return Integer.parseInt(chosenServer);
     }
 
-    synchronized int write(String name) {
-        // TODO - write dissemination
-        // always assumes that write is a create
+    synchronized int write(String fileName, String fileData) {
+        // always assumes that write is a create and that filenames are unique
 
         // append timestamp and random int - basic guarantee of uniqueness
-        //String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
         String prepend = Integer.toString(Math.abs(random.nextInt())) + "_";
-        String key = prepend + name;
+        String key = prepend + fileName;
 
         // just for testing
-        map.put(name, key);
+        map.put(fileName, key);
 
         // choose random location for new write
         int chosenServer = random.nextInt(NUM_OF_SLAVES);
+        // Send data to follower
+        followers.get(chosenServer).write(fileName, fileData);
         String chosenServerString = Integer.toString(chosenServer);
 
         // add file to list of all files
         // Note: (this key does not conflict with any others)
-        jedis.sadd("all_files", key);
+        jedis.sadd(ALL_FILES, key);
 
         // set the server of the original copy
-        String originalKey = "original" + key;
+        String originalKey = ORIGINAL_PREFIX + key;
         jedis.set(originalKey, chosenServerString);
 
         // add to server set
         jedis.sadd(key, chosenServerString);
 
         // add to server-file map
-        String serverMap = "server" + chosenServerString;
+        String serverMap = SERVER_PREFIX + chosenServerString;
         jedis.sadd(serverMap, key);
 
         // add to server actions
         long ts = System.currentTimeMillis();
         jedis.lpush(chosenServerString, Long.toString(ts));
 
-        System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
+        System.out.println("Writing file with name " + fileName + " to server " + chosenServerString + " with unique key " + key);
         return chosenServer;
     }
 
+    //TODO: Send fileData to replicas
     synchronized void readBalance() {
         System.out.println("Started read rebalance");
-        List<String> lastReads = jedis.lrange("reads", 0, READ_BALANCE_PAST_ACCESSES);
-        //System.out.println(Arrays.toString(lastReads.toArray()));
+        List<String> lastReads = jedis.lrange(READS, 0, READ_BALANCE_PAST_ACCESSES);
 
         Map<String, Integer> readCounts = new HashMap<>();
 
         //init all files to 1
-        Set<String> all_files = jedis.smembers("all_files");
-        for(String file : all_files){
+        Set<String> all_files = jedis.smembers(ALL_FILES);
+        for (String file : all_files) {
             readCounts.put(file, 1);
         }
 
@@ -137,7 +142,7 @@ public class RedisService {
         // TODO - separate removal so it always works
         for (String key : readCounts.keySet()) {
             // check how many copies currently exist
-            String originalKey = "original" + key;
+            String originalKey = ORIGINAL_PREFIX + key;
             String originalServer = jedis.get(originalKey);
             // ensure this is never deleted
 
@@ -162,7 +167,7 @@ public class RedisService {
                     String randomServer = randomNotIntSet(NUM_OF_SLAVES, availableToAdd);
                     availableToAdd.add(randomServer);
                     jedis.sadd(key, randomServer);
-                    jedis.sadd("server" + randomServer, key);
+                    jedis.sadd(SERVER_PREFIX + randomServer, key);
                 }
             } else {
                 // remove servers randomly
@@ -177,13 +182,14 @@ public class RedisService {
                     String serverToRemove = availableToRemove.remove(0);
 
                     jedis.srem(key, serverToRemove);
-                    jedis.srem("server" + serverToRemove, key);
+                    jedis.srem(SERVER_PREFIX + serverToRemove, key);
                 }
             }
         }
         System.out.println("Finished read rebalancing");
     }
 
+    //TODO: Send fileData to replicas
     synchronized void serverBalance() {
         System.out.println("Starting server rebalance");
 
@@ -193,8 +199,6 @@ public class RedisService {
         double leastBusyAvg = Long.MAX_VALUE;
         System.out.println("Rebalancing servers: ");
         for (int i = 0; i < NUM_OF_SLAVES; i++) {
-            long current = System.currentTimeMillis();
-
             List<String> stringTimes = jedis.lrange(Integer.toString(i), 0, 49);
             System.out.print("For server " + i + " in recent time, there have been " + stringTimes.size() + " reads at times ");
             List<Long> times = new ArrayList<>();
@@ -223,17 +227,17 @@ public class RedisService {
         // move random files from most busy to least busy
 
         // get random file
-        String key = jedis.srandmember("server" + mostBusy);
+        String key = jedis.srandmember(SERVER_PREFIX + mostBusy);
 
         if (key != null) {
             // move to least busy server - doesn't matter if the server already has it
             // done to reduce load on most loaded server
             jedis.sadd(key, leastBusy);
-            jedis.sadd("server" + leastBusy, key);
+            jedis.sadd(SERVER_PREFIX + leastBusy, key);
 
             // remove from old
             jedis.srem(key, mostBusy);
-            jedis.srem("server" + mostBusy, key);
+            jedis.srem(SERVER_PREFIX + mostBusy, key);
 
             System.out.println("Moved file " + key + " from " + mostBusy + " to " + leastBusy);
         }
@@ -257,9 +261,9 @@ public class RedisService {
         for (String name : map.keySet()) {
             String key = map.get(name);
             Set<String> servers = jedis.smembers(key);
-            sb.append(name + ": ");
+            sb.append(name).append(": ");
             for (String server : servers) {
-                sb.append(server + " ");
+                sb.append(server).append(" ");
             }
             sb.append("\n");
         }
