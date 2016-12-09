@@ -2,9 +2,6 @@ package services;
 
 import java.util.*;
 
-/**
- * Created by jiaweizhang on 4/12/16.
- */
 public class SlaveService {
 
     //key/version store

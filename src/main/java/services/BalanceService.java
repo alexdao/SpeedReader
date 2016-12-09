@@ -3,9 +3,6 @@ package services;
 import java.util.Timer;
 import java.util.TimerTask;
 
-/**
- * Created by jiaweizhang on 4/12/16.
- */
 public class BalanceService {
     private RedisService r;
     private Timer readBalanceTimer;

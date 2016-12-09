@@ -4,9 +4,6 @@ import redis.clients.jedis.Jedis;
 
 import java.util.*;
 
-/**
- * Created by jiaweizhang on 4/12/16.
- */
 public class RedisService {
     private final int NUM_OF_SLAVES = 10;
     // look through last 100 reads - higher in production

@@ -2,10 +2,6 @@ package services;
 
 import static spark.Spark.*;
 
-
-/**
- * Created by jiaweizhang on 4/12/16.
- */
 public class RequestService {
     private RedisService r;
 

@@ -7,9 +7,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by jiaweizhang on 4/16/16.
- */
 public class TestApplication {
     //private final String FILENAME = "small.txt";
     private final String FILENAME = "large.txt";
