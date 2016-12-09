@@ -11,6 +11,9 @@ public class RedisService {
     // just for test
     private Map<String, String> map = new HashMap<>();
 
+    // Follower list
+    private List<FollowerService> followers;
+
     private Jedis jedis;
     private Random random;
 
@@ -18,6 +21,15 @@ public class RedisService {
         random = new Random();
         jedis = new Jedis("localhost", 6379);
         System.out.println("Connected to Redis");
+
+        initializeFollowers();
+    }
+
+    private void initializeFollowers() {
+        followers = new ArrayList<>();
+        for(int i=0; i< NUM_OF_SLAVES; i++) {
+            followers.add(new FollowerService());
+        }
     }
 
     void flush() {
