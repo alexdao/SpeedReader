@@ -52,10 +52,20 @@ public class RedisService {
         }
 
         // randomly select follower to read from
-        String chosenServer = jedis.srandmember(key);
-        int followerNum = Integer.parseInt(chosenServer.substring(SERVER_PREFIX.length()));
-        List<String> fileData = followers.get(followerNum).read(fileName);
-        // TODO: Resolve fileData
+        String chosenServer = jedis.srandmember(key); //SERVER_PREFIX + NUM
+        int followerNum = Integer.parseInt(chosenServer.substring(SERVER_PREFIX.length())); //num
+        FollowerService currFollower = followers.get(followerNum);
+        List<String> fileData = currFollower.read(fileName);
+
+        String resolvedData;
+        if (fileData.size() > 1) {
+            resolvedData = resolveData(fileData);
+
+        }
+        else {
+            resolvedData = fileData.get(0);
+        }
+
 
         // add to server actions
         long ts = System.currentTimeMillis();
@@ -66,6 +76,11 @@ public class RedisService {
 
         System.out.println("Reading file with name " + fileName + " from server " + chosenServer);
         return Integer.parseInt(chosenServer);
+    }
+
+    // Randomly resolve list by picking a random value
+    private String resolveData(List<String> fileData) {
+        return fileData.get(random.nextInt(fileData.size()));
     }
 
     synchronized int write(String fileName, String fileData) {
