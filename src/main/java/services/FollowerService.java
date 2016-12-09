@@ -2,12 +2,12 @@ package services;
 
 import java.util.*;
 
-public class SlaveService {
+public class FollowerService {
 
     //key/version store
-    private Map<String, List<String>> store = new HashMap<String, List<String>>();
+    private Map<String, List<String>> store = new HashMap<>();
 
-    public SlaveService() {
+    public FollowerService() {
 
     }
 
