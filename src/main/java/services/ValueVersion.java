@@ -38,4 +38,15 @@ public class ValueVersion {
         this.values = newValues;
         return this.values;
     }
+
+    public List<String> setValues (String value) {
+        this.values.clear();
+        this.values.add(value);
+        return this.values;
+    }
+
+    public List<String> addValue (String newValue) {
+        this.values.add(newValue);
+        return this.values;
+    }
  }

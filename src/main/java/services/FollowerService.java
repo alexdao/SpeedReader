@@ -1,11 +1,14 @@
 package services;
 
+import jdk.internal.org.objectweb.asm.tree.analysis.Value;
+import jdk.nashorn.internal.runtime.Version;
+
 import java.util.*;
 
 public class FollowerService {
 
     //key/version store
-    private Map<String, List<String>> store = new HashMap<>();
+    private Map<String, ValueVersion> store = new HashMap<>();
 
     public FollowerService() {
 
@@ -17,7 +20,7 @@ public class FollowerService {
      * @param key The key to read versions for
      * @return A list of versions of the value for the inputted key
      */
-    public List<String> read(String key) {
+    public ValueVersion read(String key) {
         return store.get(key);
     }
 
@@ -25,25 +28,12 @@ public class FollowerService {
      * Replaces versions of a value with a single "resolved" value
      *
      * @param key The key to resolve
-     * @param seenValues The versions of the value to replace
-     * @param resolvedValue The value to replace the seen values with
-     * @return The list of values after all seen values have been resolved
+     * @param resolvedValue The value to resolve to
+     * @param version The version to resolve to (one greater than the last seen version)
+     * @return An object containing the list of values for the key after resolution
      */
-    public List<String> resolve(String key, List<String> seenValues, String resolvedValue) {
-        List<String> currentValues = store.get(key);
-        if (currentValues == null) {
-            return null;
-        }
-
-        for (String value : seenValues) {
-            if (currentValues.contains(value)) {
-                currentValues.remove(value);
-            }
-        }
-
-        currentValues.add(resolvedValue);
-
-        return store.get(key);
+    public ValueVersion resolve(String key, String resolvedValue, int version) {
+        return this.write(key, resolvedValue, version);
     }
 
     /**
@@ -51,18 +41,41 @@ public class FollowerService {
      *
      * @param key The key to write to
      * @param value A value to add to the key's version list
-     * @return A list of all versions of the key's values after the new value is added
+     * @param version The version of the write (should be one greater than last seen version)
+     * @return An object containing versions of the key's values after the new value is added
      */
-    public List<String> write (String key, String value) {
-        List<String> currentVersions = store.get(key);
-        if (currentVersions != null) {
-            currentVersions.add(value);
-            return currentVersions;
-        } else {
+    public ValueVersion write (String key, String value, int version) {
+        ValueVersion currentVersions = store.get(key);
+        if (currentVersions == null) {
             List<String> newVersions = new ArrayList<String>();
             newVersions.add(value);
-            store.put(key, newVersions);
-            return newVersions;
+            store.put(key, new ValueVersion(version, newVersions));
+            return store.get(key);
+        } else if (currentVersions.getVersion() >= version) {
+            currentVersions.addValue(value);
+            return currentVersions;
+        } else {
+            currentVersions.setValues(value);
+            currentVersions.setVersion(version);
+            return currentVersions;
+        }
+    }
+
+    /**
+     * Adds a replica of a value list with a given key to a follower
+     *
+     * Only adds the list if the key does not already exist on the follower
+     * @param key The key to add
+     * @param valueVersions The value list to be replicated
+     * @return The new value list, if the key does not already exist, else null
+     */
+    public ValueVersion addReplica (String key, ValueVersion valueVersions) {
+        ValueVersion currentVersions = store.get(key);
+        if (currentVersions != null) {
+            return null;
+        } else {
+            store.put(key, valueVersions);
+            return store.get(key);
         }
     }
 
@@ -71,7 +84,7 @@ public class FollowerService {
      *
      * @return The entire store of this replica
      */
-    public Map<String, List<String>> getStore() {
+    public Map<String, ValueVersion> getStore() {
         return store;
     }
 }

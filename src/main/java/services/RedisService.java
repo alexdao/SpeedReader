@@ -53,12 +53,13 @@ public class RedisService {
 
         // randomly select follower to read from
         String chosenServer = jedis.srandmember(key);
-        int followerNum = Integer.parseInt(chosenServer.substring(SERVER_PREFIX.length()));
-        List<String> fileData = followers.get(followerNum).read(fileName);
+        int followerNum = Integer.parseInt(chosenServer);
+        List<String> fileData = followers.get(followerNum).read(fileName).getValues();
         // TODO: Resolve fileData
 
         // add to server actions
         long ts = System.currentTimeMillis();
+        String listtype = jedis.type(chosenServer);
         jedis.lpush(chosenServer, Long.toString(ts));
 
         // add to list to keep track of its reads
@@ -81,7 +82,7 @@ public class RedisService {
         // choose random location for new write
         int chosenServer = random.nextInt(NUM_OF_SLAVES);
         // Send data to follower
-        followers.get(chosenServer).write(fileName, fileData);
+        followers.get(chosenServer).write(fileName, fileData, 0);
         String chosenServerString = Integer.toString(chosenServer);
 
         // add file to list of all files

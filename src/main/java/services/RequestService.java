@@ -32,7 +32,7 @@ public class RequestService {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Write: " + fileName);
             return ("Writing file '" + fileName) +
-                    "' to server number " + r.write(fileName);
+                    "' to server number " + r.write(fileName, "test");
         });
 
         put("/files/*", (request, response) -> {
