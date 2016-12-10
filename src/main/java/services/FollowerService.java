@@ -5,12 +5,12 @@ import jdk.nashorn.internal.runtime.Version;
 
 import java.util.*;
 
-public class FollowerService {
+class FollowerService {
 
     //key/version store
     private Map<String, ValueVersion> store = new HashMap<>();
 
-    public FollowerService() {
+    FollowerService() {
 
     }
 
@@ -39,7 +39,7 @@ public class FollowerService {
     /**
      * Writes a version of a value for a given key
      *
-     * @param key The key to write to
+     * @param key   The key to write to
      * @param value A value to add to the key's version list
      * @param version The version of the write (should be one greater than last seen version)
      * @return An object containing versions of the key's values after the new value is added

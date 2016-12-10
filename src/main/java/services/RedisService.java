@@ -69,6 +69,11 @@ public class RedisService {
         return Integer.parseInt(chosenServer);
     }
 
+    // Randomly resolve list by picking a random value
+    private String resolveData(List<String> fileData) {
+        return fileData.get(random.nextInt(fileData.size()));
+    }
+
     synchronized int write(String fileName, String fileData) {
         // always assumes that write is a create and that filenames are unique
 
