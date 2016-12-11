@@ -31,13 +31,11 @@ public class RequestService {
         post("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Write: " + fileName);
-            return ("Writing file '" + fileName) +
-                    "' to server number " + r.write(fileName, "test");
+            return ("Writing file '" + fileName);
         });
 
         put("/files/*", (request, response) -> {
             System.out.println("Modify metadata: " + request.pathInfo());
-
             return request.pathInfo();
         });
     }
