@@ -48,7 +48,7 @@ public class RedisService {
      */
     synchronized String read(String fileName) {
         // Check if file exists
-        if (jedis.smembers(ALL_FILES).contains(fileName)) {
+        if (!jedis.smembers(ALL_FILES).contains(fileName)) {
             System.out.println("File does not exist");
             return null;
         }
@@ -129,6 +129,7 @@ public class RedisService {
             jedis.set(originalKey, chosenServerString);
 
             // add to server set
+            System.out.println("Adding filename: " + fileName + " server " + chosenServerString);
             jedis.sadd(fileName, chosenServerString);
 
             // add to server-file map

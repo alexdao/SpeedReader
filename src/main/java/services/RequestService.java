@@ -24,18 +24,19 @@ public class RequestService {
         get("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Read: " + fileName);
-            return ("Reading file '" + fileName) +
-                    "' from server number " + r.read(fileName);
+            return ("Read file " + fileName + " which had value of " + r.read(fileName));
         });
 
         post("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Write: " + fileName);
-            return ("Writing file '" + fileName);
+            r.write(fileName, "test");
+            return ("Writing file " + fileName);
         });
 
         put("/files/*", (request, response) -> {
             System.out.println("Modify metadata: " + request.pathInfo());
+
             return request.pathInfo();
         });
     }

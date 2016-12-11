@@ -11,7 +11,7 @@ public class Application {
     private void start() {
         RedisService r = new RedisService();
         new RequestService(r);
-        new BalanceService(r);
+        //new BalanceService(r);
     }
 
 }
