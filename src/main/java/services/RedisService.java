@@ -46,7 +46,7 @@ public class RedisService {
      * @param fileName The file to read
      * @return The data of the file
      */
-    synchronized String read(String fileName) {
+    synchronized ValueVersion read(String fileName) {
         // Check if file exists
         if (!jedis.smembers(ALL_FILES).contains(fileName)) {
             System.out.println("File does not exist");
@@ -58,13 +58,10 @@ public class RedisService {
         int serverNum = Integer.parseInt(chosenServer);
         ValueVersion fileData = followers.get(serverNum).read(fileName);
 
-        String readValue;
         // If the data is inconsistent, resolve the data
         if (fileData.getNumValues() > 1) {
             Set<String> replicas = jedis.smembers(fileName);
-            readValue = resolveData(fileName, fileData, replicas);
-        } else {
-            readValue = fileData.getValues().get(0);
+            resolveData(fileName, fileData, replicas);
         }
 
         // add to server actions
@@ -75,7 +72,7 @@ public class RedisService {
         jedis.lpush(READS, fileName);
 
         System.out.println("Reading file with name " + fileName + " from server " + chosenServer);
-        return readValue;
+        return followers.get(serverNum).read(fileName);
     }
 
     // Randomly resolve list by picking a random value
@@ -98,20 +95,23 @@ public class RedisService {
      *
      * @param fileName The name of the file
      * @param fileData The data of the file
+     * @return The version of the current value
      */
-    synchronized void write(String fileName, String fileData) {
+    synchronized ValueVersion write(String fileName, String fileData, int versionNum) {
+        ValueVersion currValueVersion = null;
+
         // Check if file exists
         if (jedis.smembers(ALL_FILES).contains(fileName)) {
             // Need to write to all replicas
             Set<String> replicas = jedis.smembers(fileName);
             for (String replica : replicas) {
                 int replicaNum = Integer.parseInt(replica);
-                int newVersion = followers.get(replicaNum).read(fileName).getVersion() + 1;
-                followers.get(replicaNum).write(fileName, fileData, newVersion);
+                followers.get(replicaNum).write(fileName, fileData, versionNum);
 
                 // add to server actions
                 long ts = System.currentTimeMillis();
                 jedis.lpush(replica, Long.toString(ts));
+                currValueVersion = followers.get(replicaNum).read(fileName);
                 System.out.println("Updating file with name " + fileName + " to server " + replica);
             }
         } else {
@@ -121,7 +121,8 @@ public class RedisService {
             // choose random location for new write
             int chosenServer = random.nextInt(NUM_OF_FOLLOWERS);
             // Send data to follower
-            followers.get(chosenServer).write(fileName, fileData, 0);
+            followers.get(chosenServer).write(fileName, fileData, versionNum);
+            currValueVersion = followers.get(chosenServer).read(fileName);
             String chosenServerString = Integer.toString(chosenServer);
 
             // set the server of the original copy
@@ -142,6 +143,7 @@ public class RedisService {
 
             System.out.println("Writing new file with name " + fileName + " to server " + chosenServerString);
         }
+        return currValueVersion;
     }
 
     //TODO: Send fileData to replicas
