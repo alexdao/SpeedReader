@@ -1,6 +1,5 @@
 package services;
 
-import org.eclipse.jetty.server.Server;
 import redis.clients.jedis.Jedis;
 
 import java.util.*;

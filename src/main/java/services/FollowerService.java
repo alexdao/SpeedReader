@@ -1,8 +1,5 @@
 package services;
 
-import jdk.internal.org.objectweb.asm.tree.analysis.Value;
-import jdk.nashorn.internal.runtime.Version;
-
 import java.util.*;
 
 class FollowerService {
@@ -20,7 +17,7 @@ class FollowerService {
      * @param key The key to read versions for
      * @return A list of versions of the value for the inputted key
      */
-    public ValueVersion read(String key) {
+    ValueVersion read(String key) {
         return store.get(key);
     }
 
@@ -44,7 +41,7 @@ class FollowerService {
      * @param version The version of the write (should be one greater than last seen version)
      * @return An object containing versions of the key's values after the new value is added
      */
-    public ValueVersion write (String key, String value, int version) {
+    ValueVersion write(String key, String value, int version) {
         ValueVersion currentVersions = store.get(key);
         if (currentVersions == null) {
             List<String> newVersions = new ArrayList<String>();

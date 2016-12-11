@@ -50,7 +50,7 @@ public class TestApplication {
     private List<String> getLines() {
         String directory = "src/test/resources/" + FILENAME;
 
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(directory))) {
             String line = br.readLine();
 

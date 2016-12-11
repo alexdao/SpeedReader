@@ -2,10 +2,7 @@ package services;
 
 import java.util.*;
 
-/**
- * Created by gautamh on 12/9/2016.
- */
-public class ValueVersion {
+class ValueVersion {
 
     private int version;
 
@@ -16,36 +13,36 @@ public class ValueVersion {
         this.values = new ArrayList<>();
     }
 
-    public ValueVersion (int version, List<String> values) {
+    ValueVersion(int version, List<String> values) {
         this.version = version;
         this.values = values;
     }
 
-    public int getVersion () {
+    int getVersion() {
         return this.version;
     }
 
-    public List<String> getValues () {
+    List<String> getValues() {
         return this.values;
     }
 
-    public int setVersion (int newVersion) {
+    int setVersion(int newVersion) {
         this.version = newVersion;
         return this.version;
     }
 
-    public List<String> setValues (List<String> newValues) {
+    List<String> setValues (List<String> newValues) {
         this.values = newValues;
         return this.values;
     }
 
-    public List<String> setValues (String value) {
+    List<String> setValues(String value) {
         this.values.clear();
         this.values.add(value);
         return this.values;
     }
 
-    public List<String> addValue (String newValue) {
+    List<String> addValue(String newValue) {
         this.values.add(newValue);
         return this.values;
     }
