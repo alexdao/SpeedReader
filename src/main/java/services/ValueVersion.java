@@ -3,7 +3,6 @@ package services;
 import java.util.*;
 
 class ValueVersion {
-
     private int version;
 
     private List<String> values;
@@ -45,5 +44,9 @@ class ValueVersion {
     List<String> addValue(String newValue) {
         this.values.add(newValue);
         return this.values;
+    }
+
+    int getNumValues() {
+        return values.size();
     }
  }

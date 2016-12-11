@@ -29,7 +29,7 @@ class FollowerService {
      * @param version The version to resolve to (one greater than the last seen version)
      * @return An object containing the list of values for the key after resolution
      */
-    public ValueVersion resolve(String key, String resolvedValue, int version) {
+    ValueVersion resolve(String key, String resolvedValue, int version) {
         return this.write(key, resolvedValue, version);
     }
 
@@ -44,7 +44,7 @@ class FollowerService {
     ValueVersion write(String key, String value, int version) {
         ValueVersion currentVersions = store.get(key);
         if (currentVersions == null) {
-            List<String> newVersions = new ArrayList<String>();
+            List<String> newVersions = new ArrayList<>();
             newVersions.add(value);
             store.put(key, new ValueVersion(version, newVersions));
             return store.get(key);

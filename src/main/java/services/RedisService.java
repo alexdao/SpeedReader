@@ -41,36 +41,52 @@ public class RedisService {
         jedis.flushDB();
     }
 
-    synchronized int read(String fileName) {
+    synchronized String read(String fileName) {
         // perform name mapping - assumes no duplicates
         String key = map.get(fileName);
 
         if (key == null) {
             System.out.println("File does not exist");
-            return -1;
+            return null;
         }
 
-        // randomly select follower to read from
+        // Randomly select follower to read from
         String chosenServer = jedis.srandmember(key);
-        int followerNum = Integer.parseInt(chosenServer);
-        List<String> fileData = followers.get(followerNum).read(fileName).getValues();
-        // TODO: Resolve fileData
+        int serverNum = Integer.parseInt(chosenServer);
+        ValueVersion fileData = followers.get(serverNum).read(fileName);
+
+        String readValue;
+        // If the data is inconsistent, resolve the data
+        if (fileData.getNumValues() > 1) {
+            Set<String> replicas = jedis.smembers(key);
+            readValue = resolveData(fileName, fileData, replicas);
+        }
+        else {
+            readValue = fileData.getValues().get(0);
+        }
 
         // add to server actions
         long ts = System.currentTimeMillis();
-        String listtype = jedis.type(chosenServer);
         jedis.lpush(chosenServer, Long.toString(ts));
 
         // add to list to keep track of its reads
         jedis.lpush(READS, key);
 
         System.out.println("Reading file with name " + fileName + " from server " + chosenServer);
-        return Integer.parseInt(chosenServer);
+        return readValue;
     }
 
     // Randomly resolve list by picking a random value
-    private String resolveData(List<String> fileData) {
-        return fileData.get(random.nextInt(fileData.size()));
+    private String resolveData(String key, ValueVersion fileData, Set<String> replicas) {
+        String resolvedValue = fileData.getValues().get(random.nextInt(fileData.getNumValues()));
+
+        // Resolve the data for every replica
+        for (String replica: replicas) {
+            int replicaNum = Integer.parseInt(replica);
+            int newVersion = fileData.getVersion() + 1;
+            followers.get(replicaNum).resolve(key, resolvedValue, newVersion);
+        }
+        return resolvedValue;
     }
 
     synchronized int write(String fileName, String fileData) {
