@@ -63,8 +63,7 @@ public class RedisService {
         if (fileData.getNumValues() > 1) {
             Set<String> replicas = jedis.smembers(fileName);
             readValue = resolveData(fileName, fileData, replicas);
-        }
-        else {
+        } else {
             readValue = fileData.getValues().get(0);
         }
 
@@ -80,13 +79,13 @@ public class RedisService {
     }
 
     // Randomly resolve list by picking a random value
-    private String resolveData(String key, ValueVersion fileData, Set<String> replicas) {
-        String resolvedValue = fileData.getValues().get(random.nextInt(fileData.getNumValues()));
+    private String resolveData(String key, ValueVersion valueVersion, Set<String> replicas) {
+        String resolvedValue = valueVersion.getValues().get(random.nextInt(valueVersion.getNumValues()));
 
         // Resolve the data for every replica
-        for (String replica: replicas) {
+        for (String replica : replicas) {
             int replicaNum = Integer.parseInt(replica);
-            int newVersion = fileData.getVersion() + 1;
+            int newVersion = valueVersion.getVersion() + 1;
             followers.get(replicaNum).resolve(key, resolvedValue, newVersion);
         }
         return resolvedValue;
@@ -94,7 +93,7 @@ public class RedisService {
 
     /**
      * If the file does not exist, writes a file and its data to a randomly chosen server.
-     * If the file does exist, increment the version number and write the file to every replica.
+     * If the file does exist, increment the version number and update the file to all of its replicas.
      * Assumes that filenames are unique.
      *
      * @param fileName The name of the file
@@ -104,9 +103,18 @@ public class RedisService {
         // Check if file exists
         if (jedis.smembers(ALL_FILES).contains(fileName)) {
             // Need to write to all replicas
-            
-        }
-        else {
+            Set<String> replicas = jedis.smembers(fileName);
+            for (String replica : replicas) {
+                int replicaNum = Integer.parseInt(replica);
+                int newVersion = followers.get(replicaNum).read(fileName).getVersion() + 1;
+                followers.get(replicaNum).write(fileName, fileData, newVersion);
+
+                // add to server actions
+                long ts = System.currentTimeMillis();
+                jedis.lpush(replica, Long.toString(ts));
+                System.out.println("Updating file with name " + fileName + " to server " + replica);
+            }
+        } else {
             // Add file to list of all files
             jedis.sadd(ALL_FILES, fileName);
 
