@@ -103,17 +103,26 @@ public class RedisService {
         // Check if file exists
         if (jedis.smembers(ALL_FILES).contains(fileName)) {
             // Need to write to all replicas
-            Set<String> replicas = jedis.smembers(fileName);
-            for (String replica : replicas) {
+            List<String> replicas = new ArrayList<String>(jedis.smembers(fileName));
+            String replica = replicas.remove(0);
+            List<FollowerService> replicaObjects = new ArrayList<FollowerService>();
+            for (String replicaString : replicas)
+            {
+                if (!replicaString.equals(replica)) {
+                    replicaObjects.add(followers.get(Integer.parseInt(replica)));
+                }
+            }
+            //for (String replica : replicas) {
                 int replicaNum = Integer.parseInt(replica);
-                followers.get(replicaNum).write(fileName, fileData, versionNum);
+                FollowerService firstReplica = followers.get(replicaNum);
+                firstReplica.writeAsync(fileName, fileData, versionNum, replicaObjects, null);
 
                 // add to server actions
                 long ts = System.currentTimeMillis();
                 jedis.lpush(replica, Long.toString(ts));
                 currValueVersion = followers.get(replicaNum).read(fileName);
                 System.out.println("Updating file with name " + fileName + " to server " + replica);
-            }
+            //}
         } else {
             // Add file to list of all files
             jedis.sadd(ALL_FILES, fileName);

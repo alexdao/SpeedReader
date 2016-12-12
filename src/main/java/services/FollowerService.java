@@ -1,14 +1,22 @@
 package services;
 
+import jdk.internal.org.objectweb.asm.tree.analysis.Value;
+
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 class FollowerService {
 
     //key/version store
     private Map<String, ValueVersion> store = new HashMap<>();
 
-    FollowerService() {
+    private final ExecutorService exec;
 
+    FollowerService() {
+        exec = Executors.newFixedThreadPool(5);
     }
 
     /**
@@ -56,6 +64,26 @@ class FollowerService {
             currentVersions.setVersion(version);
             return currentVersions;
         }
+    }
+
+    ValueVersion writeAsync (String key, String value, int version, List<FollowerService> replicas, FollowerService sender) {
+        ValueVersion syncWriteResult = this.write(key, value, version);
+        FollowerService thisService = this;
+        if (replicas.size() > 0) {
+            Callable<Void> task = new Callable<Void>() {
+
+                @Override
+                public Void call() {
+
+                    FollowerService firstReplica = replicas.remove(0);
+                    firstReplica.writeAsync(key, value, version, replicas, thisService);
+                    return null;
+                }
+            };
+
+            exec.submit(task);
+        }
+        return syncWriteResult;
     }
 
     /**

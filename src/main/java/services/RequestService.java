@@ -24,13 +24,13 @@ public class RequestService {
         get("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Read: " + fileName);
-            return ("Read file " + fileName + " which had value of " + r.read(fileName));
+            return ("Read file " + fileName + " which had value of " + r.read(fileName).getValues().toString());
         });
 
         post("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
             System.out.println("Write: " + fileName);
-            r.write(fileName, "test");
+            r.write(fileName, "test", 0);
             return ("Writing file " + fileName);
         });
 
