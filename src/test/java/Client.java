@@ -1,18 +1,17 @@
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Client {
+class Client {
 
     private int id;
     private static final String SERVER_URL = "http://localhost:8080/";
     private static final boolean PRINT = true;
 
-    public Client(int id){
+    Client(int id) {
         this.id = id;
     }
 
@@ -20,30 +19,30 @@ public class Client {
         private int version;
         private List<String> values;
 
-        public Data(String response){
+        Data(String response) {
             String[] parts = response.split(",");
             this.version = Integer.parseInt(parts[0].trim());
             this.values = new ArrayList<>();
-            for(int i = 1; i < parts.length; i++){
+            for (int i = 1; i < parts.length; i++) {
                 values.add(parts[i].trim());
             }
         }
 
-        public int getVersion(){
+        int getVersion() {
             return version;
         }
 
-        public List<String> getValues(){
+        List<String> getValues() {
             return values;
         }
 
-        public String toString(){
+        public String toString() {
             return "{version: " + version + ", values: " + values + "}";
         }
     }
 
-    private String getRequest(String filename){
-        try{
+    private String getRequest(String filename) {
+        try {
             String urlString = SERVER_URL + "files/" + filename;
             URL url = new URL(urlString);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -58,15 +57,14 @@ public class Client {
             }
             in.close();
             return response.toString();
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e);
             return null;
         }
     }
 
-    private String postRequest(String filename, String value, int version){
-        try{
+    private String postRequest(String filename, String value, int version) {
+        try {
             String urlString = SERVER_URL + "files/" + filename + "," + version + "," + value;
             URL url = new URL(urlString);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -82,43 +80,42 @@ public class Client {
             in.close();
             return response.toString();
 
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e);
             return null;
         }
     }
 
-    private void print(String s){
-        if(PRINT){
-            System.out.println("Client id " + id + " : ");
+    private void print(String s) {
+        if (PRINT) {
+            System.out.println("Client id " + id + " : " + s);
         }
     }
 
-    private Data reconcile(String filename, Data data){
-        if(data.getValues().size() > 1){
+    private Data reconcile(String filename, Data data) {
+        if (data.getValues().size() > 1) {
             print("Reconciling " + data.toString());
-            String rec = data.getValues().get((data.getValues().size()-1)%id);
-            Data newData = new Data(postRequest(filename, rec, data.getVersion()+1));
+            String rec = data.getValues().get((data.getValues().size() - 1) % id);
+            Data newData = new Data(postRequest(filename, rec, data.getVersion() + 1));
             return reconcile(filename, newData);
-        }
-        else{
+        } else {
             return data;
         }
     }
 
-    public String read(String filename){
+    String read(String filename) {
         String response = getRequest(filename);
         Data data = new Data(response);
-        print("Read " + data.toString());
-        return reconcile(filename, data).toString();
+        String ret = reconcile(filename, data).toString();
+        print("Read " + ret);
+        return ret;
     }
 
-    public String write(String filename, String value){
-        return this.write(filename, value, (new Data(getRequest(filename))).getVersion());
+    String write(String filename, String value) {
+        return this.write(filename, value, (new Data(getRequest(filename))).getVersion() + 1);
     }
 
-    public String write(String filename, String value, int version){
+    String write(String filename, String value, int version) {
         Data data = new Data(this.postRequest(filename, value, version));
         print("Write " + data.toString());
         return data.toString();
