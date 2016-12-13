@@ -1,12 +1,9 @@
 package services;
 
-import jdk.internal.org.objectweb.asm.tree.analysis.Value;
-
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 class FollowerService {
 
@@ -138,7 +135,7 @@ class FollowerService {
      * @param valueVersions The value list to be replicated
      * @return The new value list, if the key does not already exist, else null
      */
-    public ValueVersion addReplica (String key, ValueVersion valueVersions) {
+    ValueVersion addReplica(String key, ValueVersion valueVersions) {
         ValueVersion currentVersions = store.get(key);
         if (currentVersions != null) {
             return null;

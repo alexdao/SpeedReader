@@ -1,5 +1,7 @@
 package services;
 
+import java.util.List;
+
 import static spark.Spark.*;
 
 public class RequestService {
@@ -23,15 +25,16 @@ public class RequestService {
 
         get("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
-            System.out.println("Read: " + fileName);
-            return ("Read file " + fileName + " which had value of " + r.read(fileName).getValues().toString());
+            System.out.println("Reading: " + fileName);
+            ValueVersion valueVersion = r.read(fileName);
+            return formatValueVersion(valueVersion);
         });
 
         post("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
-            System.out.println("Write: " + fileName);
-            r.write(fileName, "test", 0);
-            return ("Writing file " + fileName);
+            System.out.println("Writing: " + fileName);
+            ValueVersion valueVersion = r.write(fileName, "test", 0);
+            return formatValueVersion(valueVersion);
         });
 
         put("/files/*", (request, response) -> {
@@ -39,5 +42,16 @@ public class RequestService {
 
             return request.pathInfo();
         });
+    }
+
+    private String formatValueVersion(ValueVersion readValue) {
+        List<String> values = readValue.getValues();
+        StringBuilder readResponse = new StringBuilder();
+        readResponse.append(readValue.getVersion());
+        for(String value: values) {
+            readResponse.append(',');
+            readResponse.append(value);
+        }
+        return readResponse.toString();
     }
 }

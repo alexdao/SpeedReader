@@ -100,7 +100,7 @@ public class RedisService {
      * @return The version of the current value
      */
     synchronized ValueVersion write(String fileName, String fileData, int versionNum) {
-        ValueVersion currValueVersion = null;
+        ValueVersion currValueVersion;
 
         // Check if file exists
         if (jedis.smembers(ALL_FILES).contains(fileName)) {
@@ -157,7 +157,10 @@ public class RedisService {
         return currValueVersion;
     }
 
-    //TODO: Send fileData to replicas
+    /**
+     * A scheduled function that runs periodically to balance read loads across all followers. This will replicate
+     * and delete files from followers based on the most recent reads.
+     */
     synchronized void readBalance() {
         System.out.println("Started read rebalance");
         List<String> lastReads = jedis.lrange(READS, 0, READ_BALANCE_PAST_ACCESSES);
@@ -189,7 +192,6 @@ public class RedisService {
             }
         }
 
-        // TODO - separate removal so it always works
         for (String key : readCounts.keySet()) {
             // check how many copies currently exist
             String originalKey = ORIGINAL_PREFIX + key;
@@ -215,6 +217,13 @@ public class RedisService {
                 Set<String> availableToAdd = new HashSet<>(allServers);
                 for (int i = 0; i < toAdd; i++) {
                     String randomServer = randomNotIntSet(NUM_OF_FOLLOWERS, availableToAdd);
+
+                    // Replicate to new server
+                    int serverToWriteTo = Integer.parseInt(randomServer);
+                    int originalServerNum = Integer.parseInt(originalServer);
+                    ValueVersion valueVersion = followers.get(originalServerNum).read(key);
+                    followers.get(serverToWriteTo).addReplica(key, valueVersion);
+
                     availableToAdd.add(randomServer);
                     jedis.sadd(key, randomServer);
                     jedis.sadd(SERVER_PREFIX + randomServer, key);
@@ -231,6 +240,10 @@ public class RedisService {
                     Collections.shuffle(availableToRemove);
                     String serverToRemove = availableToRemove.remove(0);
 
+                    // Delete from follower
+                    int serverNumToRemoveFrom = Integer.parseInt(serverToRemove);
+                    followers.get(serverNumToRemoveFrom).delete(key);
+
                     jedis.srem(key, serverToRemove);
                     jedis.srem(SERVER_PREFIX + serverToRemove, key);
                 }
@@ -239,7 +252,10 @@ public class RedisService {
         System.out.println("Finished read rebalancing");
     }
 
-    //TODO: Send fileData to replicas
+    /**
+     * A scheduled function that runs periodically to balance server load across all followers. This will move files
+     * from busy servers to less busy servers, depending on the most recent reads.
+     */
     synchronized void serverBalance() {
         System.out.println("Starting server rebalance");
 
@@ -280,14 +296,18 @@ public class RedisService {
         String key = jedis.srandmember(SERVER_PREFIX + mostBusy);
 
         if (key != null) {
-            // move to least busy server - doesn't matter if the server already has it
-            // done to reduce load on most loaded server
-            jedis.sadd(key, leastBusy);
-            jedis.sadd(SERVER_PREFIX + leastBusy, key);
-
             // remove from old
+            int mostBusyServerNum = Integer.parseInt(mostBusy);
+            ValueVersion movedValueVersion = followers.get(mostBusyServerNum).delete(key);
             jedis.srem(key, mostBusy);
             jedis.srem(SERVER_PREFIX + mostBusy, key);
+
+            // move to least busy server - doesn't matter if the server already has it
+            // done to reduce load on most loaded server
+            int leastBusyServerNum = Integer.parseInt(leastBusy);
+            followers.get(leastBusyServerNum).addReplica(key, movedValueVersion);
+            jedis.sadd(key, leastBusy);
+            jedis.sadd(SERVER_PREFIX + leastBusy, key);
 
             System.out.println("Moved file " + key + " from " + mostBusy + " to " + leastBusy);
         }
