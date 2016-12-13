@@ -67,7 +67,7 @@ public class Client {
 
     private String postRequest(String filename, String value, int version){
         try{
-            String urlString = SERVER_URL + "files/?" + "version=" + version + "&value=" + value;
+            String urlString = SERVER_URL + "files/" + filename + "," + version + "," + value;
             URL url = new URL(urlString);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
