@@ -44,6 +44,10 @@ public class TestDistributedApplication {
         reset();
         Client[] clients = makeClients(2);
         clients[0].write("file1", "2");
+        clients[0].read("file1");
+        clients[1].write("file2","4");
+        clients[1].read("file1");
+        clients[0].read("file2");
     }
 
     public static void main(String[] args){
