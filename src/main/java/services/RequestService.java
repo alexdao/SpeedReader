@@ -31,9 +31,12 @@ public class RequestService {
         });
 
         post("/files/*", (request, response) -> {
-            String fileName = request.pathInfo().substring(7);
-            System.out.println("Writing: " + fileName);
-            ValueVersion valueVersion = r.write(fileName, "test", 0);
+            String[] query = request.pathInfo().substring(7).split(",");
+            String filename = query[0];
+            int version = Integer.parseInt(query[1]);
+            String value = query[2];
+            System.out.println("Writing: " + filename + " with value " + value + " with version " + version);
+            ValueVersion valueVersion = r.write(filename, value, version);
             return formatValueVersion(valueVersion);
         });
 
@@ -45,6 +48,9 @@ public class RequestService {
     }
 
     private String formatValueVersion(ValueVersion readValue) {
+        if (readValue == null) {
+            return "-1,null";
+        }
         List<String> values = readValue.getValues();
         StringBuilder readResponse = new StringBuilder();
         readResponse.append(readValue.getVersion());
