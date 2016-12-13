@@ -56,13 +56,15 @@ public class RedisService {
         // Randomly select follower to read from
         String chosenServer = jedis.srandmember(fileName);
         int serverNum = Integer.parseInt(chosenServer);
+        /*
         ValueVersion fileData = followers.get(serverNum).read(fileName);
 
         // If the data is inconsistent, resolve the data
+
         if (fileData.getNumValues() > 1) {
             Set<String> replicas = jedis.smembers(fileName);
             resolveData(fileName, fileData, replicas);
-        }
+        } */
 
         // add to server actions
         long ts = System.currentTimeMillis();
@@ -103,9 +105,9 @@ public class RedisService {
         // Check if file exists
         if (jedis.smembers(ALL_FILES).contains(fileName)) {
             // Need to write to all replicas
-            List<String> replicas = new ArrayList<String>(jedis.smembers(fileName));
+            List<String> replicas = new ArrayList<>(jedis.smembers(fileName));
             String replica = replicas.remove(0);
-            List<FollowerService> replicaObjects = new ArrayList<FollowerService>();
+            List<FollowerService> replicaObjects = new ArrayList<>();
             for (String replicaString : replicas)
             {
                 if (!replicaString.equals(replica)) {
