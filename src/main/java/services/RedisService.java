@@ -56,15 +56,6 @@ public class RedisService {
         // Randomly select follower to read from
         String chosenServer = jedis.srandmember(fileName);
         int serverNum = Integer.parseInt(chosenServer);
-        /*
-        ValueVersion fileData = followers.get(serverNum).read(fileName);
-
-        // If the data is inconsistent, resolve the data
-
-        if (fileData.getNumValues() > 1) {
-            Set<String> replicas = jedis.smembers(fileName);
-            resolveData(fileName, fileData, replicas);
-        } */
 
         // add to server actions
         long ts = System.currentTimeMillis();
@@ -75,19 +66,6 @@ public class RedisService {
 
         System.out.println("Reading file with name " + fileName + " from server " + chosenServer);
         return followers.get(serverNum).read(fileName);
-    }
-
-    // Randomly resolve list by picking a random value
-    private String resolveData(String key, ValueVersion valueVersion, Set<String> replicas) {
-        String resolvedValue = valueVersion.getValues().get(random.nextInt(valueVersion.getNumValues()));
-
-        // Resolve the data for every replica
-        for (String replica : replicas) {
-            int replicaNum = Integer.parseInt(replica);
-            int newVersion = valueVersion.getVersion() + 1;
-            followers.get(replicaNum).resolve(key, resolvedValue, newVersion);
-        }
-        return resolvedValue;
     }
 
     /**
@@ -108,23 +86,20 @@ public class RedisService {
             List<String> replicas = new ArrayList<>(jedis.smembers(fileName));
             String replica = replicas.remove(0);
             List<FollowerService> replicaObjects = new ArrayList<>();
-            for (String replicaString : replicas)
-            {
+            for (String replicaString : replicas) {
                 if (!replicaString.equals(replica)) {
                     replicaObjects.add(followers.get(Integer.parseInt(replica)));
                 }
             }
-            //for (String replica : replicas) {
-                int replicaNum = Integer.parseInt(replica);
-                FollowerService firstReplica = followers.get(replicaNum);
-                firstReplica.writeAsync(fileName, fileData, versionNum, replicaObjects, null);
+            int replicaNum = Integer.parseInt(replica);
+            FollowerService firstReplica = followers.get(replicaNum);
+            firstReplica.writeAsync(fileName, fileData, versionNum, replicaObjects, null);
 
-                // add to server actions
-                long ts = System.currentTimeMillis();
-                jedis.lpush(replica, Long.toString(ts));
-                currValueVersion = followers.get(replicaNum).read(fileName);
-                System.out.println("Updating file with name " + fileName + " to server " + replica);
-            //}
+            // add to server actions
+            long ts = System.currentTimeMillis();
+            jedis.lpush(replica, Long.toString(ts));
+            currValueVersion = followers.get(replicaNum).read(fileName);
+            System.out.println("Updating file with name " + fileName + " to server " + replica);
         } else {
             // Add file to list of all files
             jedis.sadd(ALL_FILES, fileName);
@@ -291,7 +266,6 @@ public class RedisService {
         }
 
         // move random files from most busy to least busy
-
         // get random file
         String key = jedis.srandmember(SERVER_PREFIX + mostBusy);
 
