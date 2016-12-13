@@ -14,6 +14,7 @@ class FollowerService {
     private Map<String, ValueVersion> store = new HashMap<>();
 
     private final ExecutorService exec;
+    private final int branching = 2;
 
     FollowerService() {
         exec = Executors.newFixedThreadPool(5);
@@ -63,6 +64,20 @@ class FollowerService {
             currentVersions.setValues(value);
             currentVersions.setVersion(version);
             return currentVersions;
+        }
+    }
+
+    /**
+     * Deletes a key and its values synchronously from this replica
+     *
+     * @param key The key to be deleted
+     * @return The deleted values if the key exists, else null
+     */
+    ValueVersion delete(String key) {
+        if (!store.containsKey(key)) {
+            return null;
+        } else {
+            return store.remove(key);
         }
     }
 
