@@ -115,9 +115,12 @@ public class Client {
     }
 
     public String write(String filename, String value){
-        Data data = new Data(this.read(filename));
-        Data newData = new Data(this.postRequest(filename, value, data.getVersion()));
+        return this.write(filename, value, (new Data(getRequest(filename))).getVersion());
+    }
+
+    public String write(String filename, String value, int version){
+        Data data = new Data(this.postRequest(filename, value, version));
         print("Write " + data.toString());
-        return newData.toString();
+        return data.toString();
     }
 }
