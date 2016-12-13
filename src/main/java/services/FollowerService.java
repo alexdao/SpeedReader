@@ -14,6 +14,7 @@ class FollowerService {
     private Map<String, ValueVersion> store = new HashMap<>();
 
     private final ExecutorService exec;
+    private final int branching = 2;
 
     FollowerService() {
         exec = Executors.newFixedThreadPool(5);
@@ -66,17 +67,60 @@ class FollowerService {
         }
     }
 
+    /**
+     * Deletes a key and its values synchronously from this replica
+     *
+     * @param key The key to be deleted
+     * @return The deleted values if the key exists, else null
+     */
+    ValueVersion delete(String key) {
+        if (!store.containsKey(key)) {
+            return null;
+        } else {
+            return store.remove(key);
+        }
+    }
+
     ValueVersion writeAsync (String key, String value, int version, List<FollowerService> replicas, FollowerService sender) {
         ValueVersion syncWriteResult = this.write(key, value, version);
         FollowerService thisService = this;
-        if (replicas.size() > 0) {
+        if (replicas.size() > 0 && replicas.size() < branching) {
             Callable<Void> task = new Callable<Void>() {
 
                 @Override
                 public Void call() {
 
-                    FollowerService firstReplica = replicas.remove(0);
-                    firstReplica.writeAsync(key, value, version, replicas, thisService);
+                    for (FollowerService replica : replicas) {
+                        replica.writeAsync(key, value, version, new ArrayList<FollowerService>(), thisService);
+                    }
+                    return null;
+                }
+            };
+
+            exec.submit(task);
+        } else if (replicas.size() > 0) {
+            List<FollowerService> nextWriters = new ArrayList<FollowerService>();
+            List<List<FollowerService>> branches = new ArrayList<List<FollowerService>>();
+
+            for (int i = 0; i < branching; i++) {
+                nextWriters.add(replicas.remove(i));
+            }
+
+            for (int i = 0; i < replicas.size(); i+= replicas.size()/branching) {
+                if (i + replicas.size()/branching > replicas.size()) {
+                    branches.add(replicas.subList(i, replicas.size()));
+                } else {
+                    branches.add(replicas.subList(i, i + replicas.size() / branching));
+                }
+            }
+            Callable<Void> task = new Callable<Void>() {
+
+                @Override
+                public Void call() {
+                    for (int i = 0; i < nextWriters.size(); i++) {
+                        FollowerService nextReplica = replicas.remove(i);
+                        nextReplica.writeAsync(key, value, version, branches.remove(i), thisService);
+                    }
                     return null;
                 }
             };
