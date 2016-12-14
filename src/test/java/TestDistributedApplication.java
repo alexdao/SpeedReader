@@ -86,8 +86,8 @@ public class TestDistributedApplication {
     }
 
     public static void main(String[] args) {
-        Test1();
-        //Test2();
+        //Test1();
+        Test2();
     }
 
 

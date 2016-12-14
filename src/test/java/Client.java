@@ -94,7 +94,7 @@ class Client {
 
     private Data reconcile(String filename, Data data) {
         if (data.getValues().size() > 1) {
-            print("Reconciling " + data.toString());
+            print("Reconciling " + filename + " " + data.toString());
             String rec = data.getValues().get((data.getValues().size() - 1) % id);
             Data newData = new Data(postRequest(filename, rec, data.getVersion() + 1));
             return reconcile(filename, newData);
@@ -107,7 +107,7 @@ class Client {
         String response = getRequest(filename);
         Data data = new Data(response);
         String ret = reconcile(filename, data).toString();
-        print("Read " + ret);
+        print("Read " + filename + " " + ret);
         return ret;
     }
 
@@ -117,7 +117,7 @@ class Client {
 
     String write(String filename, String value, int version) {
         Data data = new Data(this.postRequest(filename, value, version));
-        print("Write " + data.toString());
+        print("Write " + filename + " " + data.toString());
         return data.toString();
     }
 
