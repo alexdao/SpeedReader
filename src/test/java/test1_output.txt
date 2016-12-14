@@ -1,0 +1,28 @@
+Flushed redis
+Client id 1 : Write {version: 0, values: [2]}
+Client id 1 : Read {version: 0, values: [2]}
+Client id 2 : Write {version: 0, values: [4]}
+Client id 2 : Read {version: 0, values: [2]}
+Client id 1 : Read {version: 0, values: [4]}
+Client id 1 : Write {version: 0, values: [4, 5]}
+Client id 1 : Reconciling {version: 0, values: [4, 5]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Read {version: 1, values: [4]}
+Client id 1 : Write {version: 2, values: [10]}
+Client id 1 : Read {version: 2, values: [10]}
+
+File locations with (serverNum, value) pairs:
+file2: (0,[10]) (1,[10]) (2,[10]) (3,[10]) (6,[10]) (8,[10]) (9,[10])
+file1: (0,[2]) (2,[2])
+
+
+
+Process finished with exit code 0

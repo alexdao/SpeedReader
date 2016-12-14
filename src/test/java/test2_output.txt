@@ -1,0 +1,134 @@
+Flushed redis
+Client id 1 : Write {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+Client id 1 : Read {version: 0, values: [0]}
+Client id 2 : Read {version: 0, values: [0]}
+Client id 3 : Read {version: 0, values: [0]}
+Client id 4 : Read {version: 0, values: [0]}
+Client id 5 : Read {version: 0, values: [0]}
+Client id 6 : Read {version: 0, values: [0]}
+Client id 7 : Read {version: 0, values: [0]}
+Client id 8 : Read {version: 0, values: [0]}
+Client id 9 : Read {version: 0, values: [0]}
+Client id 10 : Read {version: 0, values: [0]}
+
+File locations with (serverNum, value) pairs:
+file1: (0,[0]) (1,[0]) (2,[0]) (3,[0]) (4,[0]) (5,[0]) (6,[0]) (7,[0]) (8,[0]) (9,[0])
+
+
+Client id 1 : Write {version: 0, values: [0]}
+Client id 2 : Write {version: 0, values: [0, 1]}
+Client id 3 : Write {version: 0, values: [0, 1, 2]}
+Client id 4 : Write {version: 0, values: [0, 1, 2, 3]}
+Client id 5 : Write {version: 0, values: [0, 1, 2, 3, 4]}
+Client id 6 : Write {version: 0, values: [0, 1, 2, 3, 4, 5]}
+Client id 7 : Write {version: 0, values: [0, 1, 2, 3, 4, 5, 6]}
+Client id 8 : Write {version: 0, values: [0, 1, 2, 3, 4, 5, 6, 7]}
+Client id 9 : Write {version: 0, values: [0, 1, 2, 3, 4, 5, 6, 7, 8]}
+Client id 10 : Write {version: 0, values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+
+File locations with (serverNum, value) pairs:
+file1: (0,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (1,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (2,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (3,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (4,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (5,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (6,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (7,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (8,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) (9,[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+
+Client id 1 : Reconciling {version: 0, values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+Client id 1 : Read {version: 1, values: [0]}
+Client id 2 : Write {version: 1, values: [0, 1]}
+Client id 3 : Reconciling {version: 1, values: [0, 1]}
+Client id 3 : Read {version: 2, values: [1]}
+
+File locations with (serverNum, value) pairs:
+file1: (0,[1]) (1,[1]) (2,[1]) (3,[1]) (4,[1]) (5,[1]) (6,[1]) (7,[1]) (8,[1]) (9,[1])
+
+
+
+Process finished with exit code 0
