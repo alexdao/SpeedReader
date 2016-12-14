@@ -11,7 +11,7 @@ your IDE of choice.
 ### Code structure
 All source files are located in the /src/ directory. We have also provided a
 test suite found in /src/test/. You may compile the paper
-directly via the `.tex` file in /doc/ directory.
+directly via the `.tex` file in /doc/ directory. Certain sections from the original DDDFS paper (written by Alex Dao, Jiawei Zhang, and Danny Oh for CS 510 Spring 2016) were reused in this paper (describing performance load balancing, parts of the introduction, and infrastructure). 
 
 ### Libraries
 App built with the help of these libs:
