@@ -1,6 +1,7 @@
 package services;
 
 import java.util.List;
+import java.util.Set;
 
 import static spark.Spark.*;
 
@@ -51,7 +52,7 @@ public class RequestService {
         if (readValue == null) {
             return "-1,null";
         }
-        List<String> values = readValue.getValues();
+        Set<String> values = readValue.getValues();
         StringBuilder readResponse = new StringBuilder();
         readResponse.append(readValue.getVersion());
         for(String value: values) {

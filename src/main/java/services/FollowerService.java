@@ -50,7 +50,7 @@ class FollowerService {
     ValueVersion write(String key, String value, int version) {
         ValueVersion currentVersions = store.get(key);
         if (currentVersions == null) {
-            List<String> newVersions = new ArrayList<>();
+            Set<String> newVersions = new HashSet<>();
             newVersions.add(value);
             store.put(key, new ValueVersion(version, newVersions));
             return store.get(key);

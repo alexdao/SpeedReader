@@ -5,14 +5,14 @@ import java.util.*;
 class ValueVersion {
     private int version;
 
-    private List<String> values;
+    private Set<String> values;
 
     public ValueVersion () {
         this.version = 0;
-        this.values = new ArrayList<>();
+        this.values = new HashSet<>();
     }
 
-    ValueVersion(int version, List<String> values) {
+    ValueVersion(int version, Set<String> values) {
         this.version = version;
         this.values = values;
     }
@@ -21,7 +21,7 @@ class ValueVersion {
         return this.version;
     }
 
-    List<String> getValues() {
+    Set<String> getValues() {
         return this.values;
     }
 
@@ -30,18 +30,18 @@ class ValueVersion {
         return this.version;
     }
 
-    List<String> setValues (List<String> newValues) {
+    Set<String> setValues (Set<String> newValues) {
         this.values = newValues;
         return this.values;
     }
 
-    List<String> setValues(String value) {
+    Set<String> setValues(String value) {
         this.values.clear();
         this.values.add(value);
         return this.values;
     }
 
-    List<String> addValue(String newValue) {
+    Set<String> addValue(String newValue) {
         this.values.add(newValue);
         return this.values;
     }

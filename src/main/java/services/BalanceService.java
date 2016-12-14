@@ -29,12 +29,12 @@ public class BalanceService {
         }, readBalanceInterval, readBalanceInterval);
 
 
-        serverBalanceTimer.scheduleAtFixedRate(new TimerTask() {
+        /**serverBalanceTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 serverBalance();
             }
-        }, serverBalanceInterval, serverBalanceInterval);
+        }, serverBalanceInterval, serverBalanceInterval);*/
     }
 
     private void readBalance() {
