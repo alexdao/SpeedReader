@@ -44,22 +44,22 @@ sorting=ynt
 \pagestyle{fancy} % All pages have headers and footers
 \fancyhead{} % Blank out the default header
 \fancyfoot{} % Blank out the default footer
-\fancyhead[C]{Graduate Operating Systems $\bullet$ April 2016 $\bullet$ Vol. I, No. 1} % Custom header text
+\fancyhead[C]{Distributed Systems $\bullet$ December 2016} % Custom header text
 \fancyfoot[RO,LE]{\thepage} % Custom footer text
 
 %----------------------------------------------------------------------------------------
 %	TITLE SECTION
 %----------------------------------------------------------------------------------------
 
-\title{\vspace{-15mm}\fontsize{24pt}{10pt}\selectfont\textbf{Detailed Diagnostic Distributed File System}} % Article title
+\title{\vspace{-15mm}\fontsize{24pt}{10pt}\selectfont\textbf{SpeedReader: Read-Optimized Distributed Key Value Store}} % Article title
 
 \author{
 \large
-\textsc{Alex Dao, Danny Oh, Jiawei Zhang, Landon Cox}\\[2mm] % Your name
+\textsc{Alex Dao, Gautam Hathi, Joy Patel}\\[2mm] % Your name
 \normalsize Duke University \\ % Your institution
 \vspace{-5mm}
 }
-\date{20 April 2016}
+\date{14 December 2016}
 
 %----------------------------------------------------------------------------------------
 
@@ -75,7 +75,9 @@ sorting=ynt
 
 \begin{abstract}
 
-\noindent The Detailed Diagnostic Distributed File System (DDDFS) is a DFS that load balances based on the number of accesses to files and servers, rather than the storage capacity of servers. DDDFS begins to explore the ways that performance metrics, such as recent file accesses and server response times, can be used to balance load. In many file systems, files are distributed based on the proportion of free space - load balancers will move files so that the proportion of free space on each server is roughly equal. If a single file is accessed significantly more than others, it may become a performance bottleneck. We have envisioned the DDDFS in order to solve this problem. In this paper we describe the potential of DDDFS as well as an implementation of a single DDDFS master server over Redis.
+\noindent SpeedReader is a read-optimized distributed key-value store. It is built on DDDFS, which load balances files based on the number of accesses to files and servers, rather than the storage capacity of servers. This allows for higher throughput for reads to keys that have more read demand. SpeedReader adds the capability to write to the system in a read optimized way using versioned data and asynchronous, store-to-store writes. This allows the system to handle a read-heavy workload in a scalable manner while still accomodating writes with eventual consistency and without interruption to reads. In this paper, we describe the SpeedReader system and detail an implementation of SpeedReader.
+
+%\noindent The Detailed Diagnostic Distributed File System (DDDFS) is a DFS that load balances based on the number of accesses to files and servers, rather than the storage capacity of servers. DDDFS begins to explore the ways that performance metrics, such as recent file accesses and server response times, can be used to balance load. In many file systems, files are distributed based on the proportion of free space - load balancers will move files so that the proportion of free space on each server is roughly equal. If a single file is accessed significantly more than others, it may become a performance bottleneck. We have envisioned the DDDFS in order to solve this problem. In this paper we describe the potential of DDDFS as well as an implementation of a single DDDFS master server over Redis.
 
 \end{abstract}
 

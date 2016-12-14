@@ -7,9 +7,6 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by jiaweizhang on 4/16/16.
- */
 public class TestApplication {
     //private final String FILENAME = "small.txt";
     private final String FILENAME = "large.txt";
@@ -53,7 +50,7 @@ public class TestApplication {
     private List<String> getLines() {
         String directory = "src/test/resources/" + FILENAME;
 
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(directory))) {
             String line = br.readLine();
 

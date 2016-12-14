@@ -4,15 +4,18 @@ import redis.clients.jedis.Jedis;
 
 import java.util.*;
 
-/**
- * Created by jiaweizhang on 4/12/16.
- */
 public class RedisService {
-    private final int NUM_OF_SLAVES = 10;
+    private final int NUM_OF_FOLLOWERS = 10;
     // look through last 100 reads - higher in production
     private final int READ_BALANCE_PAST_ACCESSES = 40;
-    // just for test
-    private Map<String, String> map = new HashMap<>();
+
+    // Follower list
+    private List<FollowerService> followers;
+
+    private static final String SERVER_PREFIX = "server";
+    private static final String ORIGINAL_PREFIX = "original";
+    private static final String ALL_FILES = "all_files";
+    private static final String READS = "reads";
 
     private Jedis jedis;
     private Random random;
@@ -21,88 +24,127 @@ public class RedisService {
         random = new Random();
         jedis = new Jedis("localhost", 6379);
         System.out.println("Connected to Redis");
+
+        initializeFollowers();
+    }
+
+    private void initializeFollowers() {
+        followers = new ArrayList<>();
+        for (int i = 0; i < NUM_OF_FOLLOWERS; i++) {
+            followers.add(new FollowerService());
+        }
     }
 
     void flush() {
         jedis.flushDB();
     }
 
-    synchronized int read(String name) {
-        // perform name mapping - assumes no duplicates
-        String key = map.get(name);
-
-        if (key == null) {
+    /**
+     * Read the data of the given file name. If there are multiple replicas, choose a random one to read from.
+     * If the data is inconsistent (i.e. there are multiple values, then resolve the data by randomly picking a value).
+     *
+     * @param fileName The file to read
+     * @return The data of the file
+     */
+    synchronized ValueVersion read(String fileName) {
+        // Check if file exists
+        if (!jedis.smembers(ALL_FILES).contains(fileName)) {
             System.out.println("File does not exist");
-            return -1;
+            return null;
         }
 
-        // randomly select slave to read from
-        String chosenServer = jedis.srandmember(key);
-
-        // track reads for a file and where they're stored and when
-        String fileToServerKey = "fileToServer" + key;
-        //jedis.zadd(fileToServerKey, ts, chosenServer);
+        // Randomly select follower to read from
+        String chosenServer = jedis.srandmember(fileName);
+        int serverNum = Integer.parseInt(chosenServer);
 
         // add to server actions
         long ts = System.currentTimeMillis();
         jedis.lpush(chosenServer, Long.toString(ts));
 
         // add to list to keep track of its reads
-        jedis.lpush("reads", key);
+        jedis.lpush(READS, fileName);
 
-        System.out.println("Reading file with name " + name + " from server " + chosenServer);
-        return Integer.parseInt(chosenServer);
+        System.out.println("Reading file with name " + fileName + " from server " + chosenServer);
+        return followers.get(serverNum).read(fileName);
     }
 
-    synchronized int write(String name) {
-        // TODO - write dissemination
-        // always assumes that write is a create
+    /**
+     * If the file does not exist, writes a file and its data to a randomly chosen server.
+     * If the file does exist, increment the version number and update the file to all of its replicas.
+     * Assumes that filenames are unique.
+     *
+     * @param fileName The name of the file
+     * @param fileData The data of the file
+     * @return The version of the current value
+     */
+    synchronized ValueVersion write(String fileName, String fileData, int versionNum) {
+        ValueVersion currValueVersion;
 
-        // append timestamp and random int - basic guarantee of uniqueness
-        //String prepend = Long.toString(System.currentTimeMillis()) + random.nextInt();
-        String prepend = Integer.toString(Math.abs(random.nextInt())) + "_";
-        String key = prepend + name;
+        // Check if file exists
+        if (jedis.smembers(ALL_FILES).contains(fileName)) {
+            // Need to write to all replicas
+            List<String> replicas = new ArrayList<>(jedis.smembers(fileName));
+            String replica = replicas.remove(0);
+            List<FollowerService> replicaObjects = new ArrayList<>();
+            for (String replicaString : replicas) {
+                if (!replicaString.equals(replica)) {
+                    replicaObjects.add(followers.get(Integer.parseInt(replica)));
+                }
+            }
+            int replicaNum = Integer.parseInt(replica);
+            FollowerService firstReplica = followers.get(replicaNum);
+            firstReplica.writeAsync(fileName, fileData, versionNum, replicaObjects, null);
 
-        // just for testing
-        map.put(name, key);
+            // add to server actions
+            long ts = System.currentTimeMillis();
+            jedis.lpush(replica, Long.toString(ts));
+            currValueVersion = followers.get(replicaNum).read(fileName);
+            System.out.println("Updating file with name " + fileName + " to server " + replica);
+        } else {
+            // Add file to list of all files
+            jedis.sadd(ALL_FILES, fileName);
 
-        // choose random location for new write
-        int chosenServer = random.nextInt(NUM_OF_SLAVES);
-        String chosenServerString = Integer.toString(chosenServer);
+            // choose random location for new write
+            int chosenServer = random.nextInt(NUM_OF_FOLLOWERS);
+            // Send data to follower
+            followers.get(chosenServer).write(fileName, fileData, versionNum);
+            currValueVersion = followers.get(chosenServer).read(fileName);
+            String chosenServerString = Integer.toString(chosenServer);
 
-        // add file to list of all files
-        // Note: (this key does not conflict with any others)
-        jedis.sadd("all_files", key);
+            // set the server of the original copy
+            String originalKey = ORIGINAL_PREFIX + fileName;
+            jedis.set(originalKey, chosenServerString);
 
-        // set the server of the original copy
-        String originalKey = "original" + key;
-        jedis.set(originalKey, chosenServerString);
+            // add to server set
+            System.out.println("Adding filename: " + fileName + " server " + chosenServerString);
+            jedis.sadd(fileName, chosenServerString);
 
-        // add to server set
-        jedis.sadd(key, chosenServerString);
+            // add to server-file map
+            String serverMap = SERVER_PREFIX + chosenServerString;
+            jedis.sadd(serverMap, fileName);
 
-        // add to server-file map
-        String serverMap = "server" + chosenServerString;
-        jedis.sadd(serverMap, key);
+            // add to server actions
+            long ts = System.currentTimeMillis();
+            jedis.lpush(chosenServerString, Long.toString(ts));
 
-        // add to server actions
-        long ts = System.currentTimeMillis();
-        jedis.lpush(chosenServerString, Long.toString(ts));
-
-        System.out.println("Writing file with name " + name + " to server " + chosenServerString + " with unique key " + key);
-        return chosenServer;
+            System.out.println("Writing new file with name " + fileName + " to server " + chosenServerString);
+        }
+        return currValueVersion;
     }
 
+    /**
+     * A scheduled function that runs periodically to balance read loads across all followers. This will replicate
+     * and delete files from followers based on the most recent reads.
+     */
     synchronized void readBalance() {
         System.out.println("Started read rebalance");
-        List<String> lastReads = jedis.lrange("reads", 0, READ_BALANCE_PAST_ACCESSES);
-        //System.out.println(Arrays.toString(lastReads.toArray()));
+        List<String> lastReads = jedis.lrange(READS, 0, READ_BALANCE_PAST_ACCESSES);
 
         Map<String, Integer> readCounts = new HashMap<>();
 
         //init all files to 1
-        Set<String> all_files = jedis.smembers("all_files");
-        for(String file : all_files){
+        Set<String> all_files = jedis.smembers(ALL_FILES);
+        for (String file : all_files) {
             readCounts.put(file, 1);
         }
 
@@ -118,17 +160,16 @@ public class RedisService {
         Map<String, Integer> dupCounts = new HashMap<>();
         for (String file : readCounts.keySet()) {
             if (readCounts.get(file) >= 20) {
-                dupCounts.put(file, NUM_OF_SLAVES);
+                dupCounts.put(file, NUM_OF_FOLLOWERS);
             } else {
                 // always at least 1
                 dupCounts.put(file, readCounts.get(file) / 2 + 1);
             }
         }
 
-        // TODO - separate removal so it always works
         for (String key : readCounts.keySet()) {
             // check how many copies currently exist
-            String originalKey = "original" + key;
+            String originalKey = ORIGINAL_PREFIX + key;
             String originalServer = jedis.get(originalKey);
             // ensure this is never deleted
 
@@ -150,10 +191,17 @@ public class RedisService {
                 System.out.println("Adding " + toAdd + " servers for key " + key);
                 Set<String> availableToAdd = new HashSet<>(allServers);
                 for (int i = 0; i < toAdd; i++) {
-                    String randomServer = randomNotIntSet(NUM_OF_SLAVES, availableToAdd);
+                    String randomServer = randomNotIntSet(NUM_OF_FOLLOWERS, availableToAdd);
+
+                    // Replicate to new server
+                    int serverToWriteTo = Integer.parseInt(randomServer);
+                    int originalServerNum = Integer.parseInt(originalServer);
+                    ValueVersion valueVersion = followers.get(originalServerNum).read(key);
+                    followers.get(serverToWriteTo).addReplica(key, valueVersion);
+
                     availableToAdd.add(randomServer);
                     jedis.sadd(key, randomServer);
-                    jedis.sadd("server" + randomServer, key);
+                    jedis.sadd(SERVER_PREFIX + randomServer, key);
                 }
             } else {
                 // remove servers randomly
@@ -167,14 +215,22 @@ public class RedisService {
                     Collections.shuffle(availableToRemove);
                     String serverToRemove = availableToRemove.remove(0);
 
+                    // Delete from follower
+                    int serverNumToRemoveFrom = Integer.parseInt(serverToRemove);
+                    followers.get(serverNumToRemoveFrom).delete(key);
+
                     jedis.srem(key, serverToRemove);
-                    jedis.srem("server" + serverToRemove, key);
+                    jedis.srem(SERVER_PREFIX + serverToRemove, key);
                 }
             }
         }
         System.out.println("Finished read rebalancing");
     }
 
+    /**
+     * A scheduled function that runs periodically to balance server load across all followers. This will move files
+     * from busy servers to less busy servers, depending on the most recent reads.
+     */
     synchronized void serverBalance() {
         System.out.println("Starting server rebalance");
 
@@ -183,9 +239,7 @@ public class RedisService {
         String leastBusy = "1";
         double leastBusyAvg = Long.MAX_VALUE;
         System.out.println("Rebalancing servers: ");
-        for (int i = 0; i < NUM_OF_SLAVES; i++) {
-            long current = System.currentTimeMillis();
-
+        for (int i = 0; i < NUM_OF_FOLLOWERS; i++) {
             List<String> stringTimes = jedis.lrange(Integer.toString(i), 0, 49);
             System.out.print("For server " + i + " in recent time, there have been " + stringTimes.size() + " reads at times ");
             List<Long> times = new ArrayList<>();
@@ -212,19 +266,22 @@ public class RedisService {
         }
 
         // move random files from most busy to least busy
-
         // get random file
-        String key = jedis.srandmember("server" + mostBusy);
+        String key = jedis.srandmember(SERVER_PREFIX + mostBusy);
 
         if (key != null) {
+            // remove from old
+            int mostBusyServerNum = Integer.parseInt(mostBusy);
+            ValueVersion movedValueVersion = followers.get(mostBusyServerNum).delete(key);
+            jedis.srem(key, mostBusy);
+            jedis.srem(SERVER_PREFIX + mostBusy, key);
+
             // move to least busy server - doesn't matter if the server already has it
             // done to reduce load on most loaded server
+            int leastBusyServerNum = Integer.parseInt(leastBusy);
+            followers.get(leastBusyServerNum).addReplica(key, movedValueVersion);
             jedis.sadd(key, leastBusy);
-            jedis.sadd("server" + leastBusy, key);
-
-            // remove from old
-            jedis.srem(key, mostBusy);
-            jedis.srem("server" + mostBusy, key);
+            jedis.sadd(SERVER_PREFIX + leastBusy, key);
 
             System.out.println("Moved file " + key + " from " + mostBusy + " to " + leastBusy);
         }
@@ -245,12 +302,11 @@ public class RedisService {
     String getFileLocations() {
         StringBuilder sb = new StringBuilder();
         sb.append("File locations: \n");
-        for (String name : map.keySet()) {
-            String key = map.get(name);
-            Set<String> servers = jedis.smembers(key);
-            sb.append(name + ": ");
+        for (String name : jedis.smembers(ALL_FILES)) {
+            Set<String> servers = jedis.smembers(name);
+            sb.append(name).append(": ");
             for (String server : servers) {
-                sb.append(server + " ");
+                sb.append(server).append(" ");
             }
             sb.append("\n");
         }

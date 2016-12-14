@@ -1,11 +1,9 @@
 package services;
 
+import java.util.List;
+
 import static spark.Spark.*;
 
-
-/**
- * Created by jiaweizhang on 4/12/16.
- */
 public class RequestService {
     private RedisService r;
 
@@ -27,16 +25,19 @@ public class RequestService {
 
         get("/files/*", (request, response) -> {
             String fileName = request.pathInfo().substring(7);
-            System.out.println("Read: " + fileName);
-            return ("Reading file '" + fileName) +
-                    "' from server number " + r.read(fileName);
+            System.out.println("Reading: " + fileName);
+            ValueVersion valueVersion = r.read(fileName);
+            return formatValueVersion(valueVersion);
         });
 
         post("/files/*", (request, response) -> {
-            String fileName = request.pathInfo().substring(7);
-            System.out.println("Write: " + fileName);
-            return ("Writing file '" + fileName) +
-                    "' to server number " + r.write(fileName);
+            String[] query = request.pathInfo().substring(7).split(",");
+            String filename = query[0];
+            int version = Integer.parseInt(query[1]);
+            String value = query[2];
+            System.out.println("Writing: " + filename + " with value " + value + " with version " + version);
+            ValueVersion valueVersion = r.write(filename, value, version);
+            return formatValueVersion(valueVersion);
         });
 
         put("/files/*", (request, response) -> {
@@ -44,5 +45,19 @@ public class RequestService {
 
             return request.pathInfo();
         });
+    }
+
+    private String formatValueVersion(ValueVersion readValue) {
+        if (readValue == null) {
+            return "-1,null";
+        }
+        List<String> values = readValue.getValues();
+        StringBuilder readResponse = new StringBuilder();
+        readResponse.append(readValue.getVersion());
+        for(String value: values) {
+            readResponse.append(',');
+            readResponse.append(value);
+        }
+        return readResponse.toString();
     }
 }

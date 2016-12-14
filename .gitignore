@@ -1,11 +1,14 @@
+# Latex
 *.log
 *.pdf
 *.gz
 *.aux
 *.out
+*.bcf
+*.xml
 .idea/*
 dump.rdb
-
+.DS_Store
 
 # Created by https://www.gitignore.io/api/intellij,gradle
 
