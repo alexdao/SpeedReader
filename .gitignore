@@ -1,6 +1,6 @@
 # Latex
 *.log
-*.pdf
+doc/*.pdf
 *.gz
 *.aux
 *.out
