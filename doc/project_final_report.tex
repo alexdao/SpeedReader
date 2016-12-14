@@ -75,7 +75,7 @@ sorting=ynt
 
 \begin{abstract}
 
-\noindent SpeedReader is a read-optimized distributed key-value store. It is built on DDDFS, which load balances files based on the number of accesses to files and servers, rather than the storage capacity of servers. This allows for higher throughput for reads to keys that have more read demand. SpeedReader adds the capability to write to the system in a read optimized way using versioned data and asynchronous, store-to-store writes. This allows the system to handle a read-heavy workload in a scalable manner while still accomodating writes with eventual consistency and without interruption to reads. In this paper, we describe the SpeedReader system and detail an implementation of SpeedReader.
+\noindent SpeedReader is a read-optimized distributed key-value store. It is built on DDDFS, which load balances files based on the number of accesses to files and servers, rather than the storage capacity of servers. This allows for higher throughput for reads to keys that have more read demand. SpeedReader adds the capability to write to the system in a read optimized way using versioned data and asynchronous, store-to-store writes. This allows the system to handle a read-heavy workload in a scalable manner while still accomodating writes without interruption to reads. In this paper, we describe the SpeedReader system and detail an implementation of SpeedReader.
 
 \end{abstract}
 
@@ -86,17 +86,19 @@ sorting=ynt
 \begin{multicols}{2} % Two-column layout throughout the main article text
 
 \section{Introduction}
-Load balancing, responsible for distributing workloads to optimize resource use, is a core function provided with any cloud service. Most cloud services achieve this through a fairly simple routine: they monitor the health of its servers while using DNS round robin to select the healthy server to route to. While there are many aspects to performance in a distributed file system, we will focus on load balancing in this paper.\\\indent
-Distributed file systems working on a cluster-based architecture (e.g. GFS, HDFS) balance load in a familiar way: a central server sends heartbeats to its nodes, which in turn return statistics such as its storage capacity.  Using this information, the central server balances replicas such that the storage utilization of its nodes is as balanced as possible. The methods of achieving balancing without a large overhead involves many tactics including in-memory metadata to make operations occurring in the central server fast. We will refer to this well-explored form of load balancing as "storage load balancing".\\\indent
-Storage load balancing works well if there is the assumption that all files are accessed with similar frequency. In this case, the number of accesses to a server is proportional to the number of files it stores, so the accesses to the servers will be distributed evenly. However, there are many cases in which certain important files are accessed more frequently than others. In this case, the servers that store this file will have an increased share of accesses and may become a bottleneck. Thus, in this paper, we focus on "performance load balancing", which aims to balance the location and replication of files based on performance metrics, such as number of accesses or response times, rather than storage metrics. This will prevent bottlenecks occurring due to many accesses to a single file or server. Using Redis, an in-memory data structure store, we have implemented a simulation of a central server in DDDFS. \\\indent
-However, with replication comes the issue of latency and consistency with writes. To account for this, we implement an anti-entropy algorithm which propogates writes throughout replicated files. This preserves availability and latency for reads while guaranteeing eventual-consistency for writes.
+
+Read-optimized storage is useful to have in situations with high read workload but low write workload. An example of such a workload is one that a CDN might face when serving a website that requires occaional content updates that can be propagated slowly through the system but which has large numbers of users accessing the website. SpeedReader provides such a service using a multi-tiered system that makes information available for reads while delaying writes to minimize read interference. This is accomplished through two main mechaisms: load-balancing and asynchronous write propagation.\\\indent
+Load balancing allows for read-optimization by distributing read workload across a number of stores to optimize resource use. Many classic load-balancing systems balance load in a familiar way: a central server sends heartbeats to its nodes, which in turn return statistics such as its storage capacity.  Using this information, the central server balances replicas such that the storage utilization of its nodes is as balanced as possible. The methods of achieving balancing without a large overhead involves many tactics including in-memory metadata to make operations occurring in the central server fast. We will refer to this well-explored form of load balancing as "storage load balancing".\\\indent
+Storage load balancing works well if there is the assumption that all keys are accessed with similar frequency. In this case, the number of accesses to a server is proportional to the number of keys it stores, so the accesses to the servers will be distributed evenly. However, there are many cases in which certain important keys are accessed more frequently than others. In this case, the servers that store this file will have an increased share of accesses and may become a bottleneck. Thus, to further optimize our system for a read-heavy workload, we use a "performance load balancing" system developed in DDDFS, which aims to balance the location and replication of keys based on performance metrics, such as number of accesses or response times, rather than storage metrics. This will prevent bottlenecks occurring due to many accesses to a single key or server. \\\indent
+However, with replication comes the issue of latency and consistency with writes. SpeedReader is designed to ensure that writes to a given key do not interfere with reads to that key, especially for keys that are frequently accessed. To account for this, we use versioned writes and implement an algorithm which propogates writes throughout all replicas that hold a given key. This preserves availability and latency for reads while allowing write propagation throughout the system.\\\indent
+Using Redis, an in-memory data structure store, we have implemented a simulation of a SpeedReader system in DDDFS. 
 
 %------------------------------------------------
 
 \section{Implementation}
 \subsection*{Infrastructure}
-DDDFS is a file system based on HDFS that focuses purely on performance load balancing in a write-once read-many environment. Thus, the architecture is focused on read performance. The ideal file system will balance both performance load and storage load in order to truly optimize the use of resources. However, by showing that performance load and storage load can be balanced respectively, combining them naturally becomes a question of algorithmic feasibility, which would be left to future research.\\\indent
-Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead "performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.
+SpeedReader is a file system based on HDFS that uses performance load balancing in a write-occasionally read-often environment. Thus, the architecture is focused on read performance. The ideal file system will balance both performance load and storage load in order to truly optimize the use of resources. However, by showing that performance load and storage load can be balanced respectively, combining them naturally becomes a question of algorithmic feasibility, which would be left to future research.\\\indent
+Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes.
 \includegraphics[width=6.5cm]{res/server_diagram.jpg}\\\indent
 The above figure shows the design infrastructure. Clients send file system requests through the master server, which stores all metadata associated with the files and slave servers. Requests are accepted by a Java Spark web API through HTTP requests. On initial write, the master randomly chooses among the known slaves to store the file. This server is designated as the "original" server, and the file can never be removed from this server via rebalancing procedures. The original server is kept as a simple guarantee that a file will always exist somewhere in the file system. Redis, an open-source and networked server was chosen as the system to store metadata on master for two main reasons:
 \begin{enumerate}
@@ -105,10 +107,17 @@ The above figure shows the design infrastructure. Clients send file system reque
 \end{enumerate}
 In addition to a mapping of each file to its original server, the master server also maintains a mapping of each file to all duplicates, a mapping of each server to all files stored on that server, timestamps per file, and a buffer of the most recent files and servers accessed. Our implementation sets the buffer size at 40 for testing, but in production this can be much higher. DDDFS was primarily built with speed (reads) in mind and does not plan for many file modifications (simpler to instead create a new file). Thus, older unread file metadata can be un-cached from Redis memory and eventually garbage-collected (or backed up to disk).
 
-\subsection*{Client}
+\subsection*{Client Tier}
 The main purpose of the client is to handle reconciliation. On a given read, the client gets latest version number of a file along with all the values corresponding to that version number. If there are more than one values, the client must follow up the read with a write that reconciliates by picking one of the values. On a a given write, the client must pass in the version of the file being writen (usually the latest plus one) along with the new value to be written. This makes the assumption that the client has cached the file with a read before the write. 
 
-\subsection*{Store design and write mechanisms}
+\subsection*{Master Tier}
+SpeedReader uses a single master node that stores metadata about each follower and its data. This is done with Redis, a in-memory data structure store that is both persistent and fast. We chose Redis with an emphasis on speed because calculations for load balancing and routing read or write requests should not cause significant overhead. Instead, the bottleneck of the system should be in the I/O of fetching from disk in the followers. 
+
+The master node is the bridge between the client tier and the server tier (which consists of $n$ number of followers). Clients send GET and POST requests to the master node, which has the appearance of a monolithic server. We use Java Spark as the framework for creating and controlling the endpoints. The master node then completes these requests by querying the appropriate followers in the server tier. In our implementation, we have implemented this by calling functions in references to `FollowerService` objects, since we are testing locally. In real-world scenarios, this can easily be extended to remote procedure calls with minimal modification. Communication between the master and the server tier is handled via a simple, internal API that allows for reads, writes, and replication. 
+
+Since the master node controls the location of all keys-value pairs, it is able to redistribute data across followers without client intervention. An important application of this feature is load balancing, which spreads the burden of handling read requests across multiple followers. In general terms, this works by duplicating heavily-requested data to more followers via read rebalancing. We also move data from busy servers to less busy servers via server rebalancing. Details of the algorithm will be described further in this paper. It is important to note that each individual follower in the server tier has no knowledge of the status of other followers, which allows for SpeedReader to be extremely flexible in adding new followers. 
+
+\subsection*{Server Tier}
 We have designed our storage tier to handle versioned reads and writes issues by the master. 
 
 All writes to stores are versioned. When writing a value, clients submit a version number along with the key and value to the master, which then sends the key, value, and version to a randomly-chosen Follower. The master also gives the chosen Follower a list of stores which the write should be propagated to. If the version sent by the client is greater than the latest version seen by chosen Follower, the Follower increments the version number for that key and the changes issues by the client overwrite previous versions. Otherwise, the Follower adds the client write value is added to version list for that key. The Follower then returns a list of currently stored values for the written key to the master.
@@ -126,11 +135,7 @@ It is necessary for DDDFS to keep track of recent reads by clients in its metada
 Like HDFS, all metadata will be stored in memory on the central server, while the application data is separately stored on child nodes. Additionally, we will model our file movements and replications after HDFS not only for simplicity, but also as proof that such movements and replications can be done quickly (as shown by HDFS). By showing the viability of the low overhead "performance load balancer" in DDDFS, we aim to elucidate the possibility of using such a load balancer in existing file systems such as HDFS.
 
 \section{Difficulties}
-Difficulties were encountered for performance measurement as there was no easy way of simulating a large number of clients in a short period of time. Java Spark does not handle concurrent HTTP requests well so certain requests are never received. A more durable and mature framework such as Java Spring could provide guarantees on receiving requests.
-
 A difficulty encountered while using Redis was to find a memory and time-efficient algorithm for calculating how many duplicates were desired for a file. A naive algorithm would be to just keep access counts for every file from the creation of the file but that potentially uses memory exceeding the system (practical limit of around 100 GB).
-
-The original plan centered around providing detailed diagnostic information to the file system and to the client, but our implementation provides no such information to the client. Instead, all of the information is used for file and server rebalancing. While this removes a level of control and significantly increases software complexity (especially for optimization algorithms), the client no longer has to analyze data in order to better schedule his own tasks, and can instead just send requests to the server and depend on the server to deliver good performance.
 
 %------------------------------------------------
 
@@ -166,14 +171,7 @@ file1: 8
 \end{verbatim}
 Since file2 was more heavily requested, it was duplicated across every server. In addition, requests for file3 had dropped off, and as such, the number of duplicates on servers decreased as well. These deletions are important to maximize space on servers and allow for future rebalancing to service heavy traffic of other files.
 %------------------------------------------------
-
-\section{Limitations}
-A limitation of DDDFS is its inability to store relations between files as the entire file system is essentially a hash table. This means that traditional relations such as folders are lost within DDDFS. DDDFS filenames can be structured intelligently (with the filename essentially being a path), but this results in additional complexity and lost performance.
-
-Another limitation of the DDDFS is that there is currently no action verification in place. Requests processed by master possibly result in slave server actions, such as file movement. These actions are assumed to be received and processed by the slave servers. To overcome this limitation, two-phrase commit can be utilized, though for many small files, this may result in network and performance degradation.
-
 \section{Future Work}
-
 Performance load balancing is a resource optimization technique with large potential that the DDDFS only begins to explore. If the metadata overhead is kept small enough, there are many unexplored ways to further improve performance. Furthermore, we need more concrete evidence of the potential for performance improvement using performance load balancing.
 
 \subsection*{Workload Analysis}
@@ -194,6 +192,11 @@ The ideal distributed file system would load balance so that there is a proporti
 %	REFERENCE LIST
 %----------------------------------------------------------------------------------------
 \begin{thebibliography}{99} % Bibliography - this is intentionally simple in this template
+\bibitem{DDDFS} Alex Dao, Jiawei Zhang, Danny Oh
+\newblock Detailed Diagnostic Distributed File System
+\newblock \textit{CS510: Graduate Operating Systems}
+\newblock Duke. 2016.
+
 \bibitem{Dynamic Load Balancing} Valeria Cardellini, Michele Colajanni, Philip S. Yu
 \newblock Dynamic Load Balancing on Web-server Systems
 \newblock \textit{1999 Internet Computing vol. 3, no. 3, pp. 28-39, May-June 1999}
