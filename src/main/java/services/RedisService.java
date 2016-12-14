@@ -198,6 +198,7 @@ public class RedisService {
                     int originalServerNum = Integer.parseInt(originalServer);
                     ValueVersion valueVersion = followers.get(originalServerNum).read(key);
                     followers.get(serverToWriteTo).addReplica(key, valueVersion);
+                    System.out.println("Duplicating " + key + " to server " + serverToWriteTo);
 
                     availableToAdd.add(randomServer);
                     jedis.sadd(key, randomServer);
@@ -238,7 +239,6 @@ public class RedisService {
         double mostBusyAvg = 0;
         String leastBusy = "1";
         double leastBusyAvg = Long.MAX_VALUE;
-        System.out.println("Rebalancing servers: ");
         for (int i = 0; i < NUM_OF_FOLLOWERS; i++) {
             List<String> stringTimes = jedis.lrange(Integer.toString(i), 0, 49);
             System.out.print("For server " + i + " in recent time, there have been " + stringTimes.size() + " reads at times ");
@@ -301,12 +301,14 @@ public class RedisService {
 
     String getFileLocations() {
         StringBuilder sb = new StringBuilder();
-        sb.append("File locations: \n");
+        sb.append("File locations with (serverNum, value) pairs:\n");
         for (String name : jedis.smembers(ALL_FILES)) {
             Set<String> servers = jedis.smembers(name);
             sb.append(name).append(": ");
             for (String server : servers) {
-                sb.append(server).append(" ");
+                int serverNum = Integer.parseInt(server);
+                String values = followers.get(serverNum).read(name).getValues().toString();
+                sb.append("(").append(server).append(",").append(values).append(")").append(" ");
             }
             sb.append("\n");
         }

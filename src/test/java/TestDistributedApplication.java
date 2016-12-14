@@ -35,10 +35,43 @@ public class TestDistributedApplication {
         clients[0].read("file2");
         clients[0].write("file2", "5", 0);
         clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        clients[0].read("file2");
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        clients[0].write("file2", "10", 2);
+        clients[0].read("file2");
+        getFileLocations();
     }
 
     public static void main(String[] args) {
         Test1();
     }
 
+
+    private static void getFileLocations() {
+        HttpResponse<String> result = null;
+        try {
+            result = Unirest.get("http://localhost:8080/admin/filelocations")
+                    .asString();
+        } catch (UnirestException e) {
+            e.printStackTrace();
+        }
+
+        String str = result.getBody();
+        System.out.println();
+        System.out.println(str);
+        System.out.println();
+    }
 }
