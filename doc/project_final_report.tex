@@ -77,8 +77,6 @@ sorting=ynt
 
 \noindent SpeedReader is a read-optimized distributed key-value store. It is built on DDDFS, which load balances files based on the number of accesses to files and servers, rather than the storage capacity of servers. This allows for higher throughput for reads to keys that have more read demand. SpeedReader adds the capability to write to the system in a read optimized way using versioned data and asynchronous, store-to-store writes. This allows the system to handle a read-heavy workload in a scalable manner while still accomodating writes with eventual consistency and without interruption to reads. In this paper, we describe the SpeedReader system and detail an implementation of SpeedReader.
 
-%\noindent The Detailed Diagnostic Distributed File System (DDDFS) is a DFS that load balances based on the number of accesses to files and servers, rather than the storage capacity of servers. DDDFS begins to explore the ways that performance metrics, such as recent file accesses and server response times, can be used to balance load. In many file systems, files are distributed based on the proportion of free space - load balancers will move files so that the proportion of free space on each server is roughly equal. If a single file is accessed significantly more than others, it may become a performance bottleneck. We have envisioned the DDDFS in order to solve this problem. In this paper we describe the potential of DDDFS as well as an implementation of a single DDDFS master server over Redis.
-
 \end{abstract}
 
 %----------------------------------------------------------------------------------------
@@ -109,6 +107,17 @@ In addition to a mapping of each file to its original server, the master server 
 
 \subsection*{Client}
 The main purpose of the client is to handle reconciliation. On a given read, the client gets latest version number of a file along with all the values corresponding to that version number. If there are more than one values, the client must follow up the read with a write that reconciliates by picking one of the values. On a a given write, the client must pass in the version of the file being writen (usually the latest plus one) along with the new value to be written. This makes the assumption that the client has cached the file with a read before the write. 
+
+\subsection*{Store design and write mechanisms}
+We have designed our storage tier to handle versioned reads and writes issues by the master. 
+
+All writes to stores are versioned. When writing a value, clients submit a version number along with the key and value to the master, which then sends the key, value, and version to a randomly-chosen Follower. The master also gives the chosen Follower a list of stores which the write should be propagated to. If the version sent by the client is greater than the latest version seen by chosen Follower, the Follower increments the version number for that key and the changes issues by the client overwrite previous versions. Otherwise, the Follower adds the client write value is added to version list for that key. The Follower then returns a list of currently stored values for the written key to the master.
+
+Once a key/value is written to an individual Follower, that Follower then begins the propagation of the write to all other Followers which have that key. The chosen Follower issues an asynchronous write command to some number of the other "second-level" Followers designated by the master for propagation of the write. The chosen Follower also splits the remaining stores designated by the master for propagation among the second-level Followers. These second-level Followers then repeat the process until the write is propagated to all designated replicas.
+
+Reads are issued to any store which holds a desired key. Each read returns an object containing all versions of the value for that key as well as the latest version number for that key. Each store may contain a different set of values for a key, depending on which versions the store has seen.
+
+The storage tier also presents an interface for key/value replication and value reconciliation. During key/value replication, each Follower accepts a key with all versions of the value written for that key. If the key is already present on the Follower, it rejects the replication. Value reconciliation works in much the same way as a write.
 
 \subsection*{Load Balancing Design}
 We have conceived two operations for the DDDFS: file balancing and server balancing. For file balancing, the basic idea is to predict when a file will be read by many clients and to duplicate that file across many servers prior to that event. By doing so, clients can read in parallel, eliminating constraints imposed by network throughput or server performance. Server balancing focuses on a related idea when files on a specific server will be read by many clients. In this case, files are moved from the busy server to less busy servers. This should lead to the same performance improvements as file balancing. \\\indent
