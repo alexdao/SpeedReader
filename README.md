@@ -1,8 +1,7 @@
 SpeedReader
 ==========
 
-SpeedReader is a read-optimized distributed key-value store written by Alex Dao,
-Gautam Hathi, and Joy Patel, based on a fork of DDDFS (now deprecated).
+SpeedReader is a read-optimized distributed key-value store written by Alex Dao, Gautam Hathi, and Joy Patel, based on a fork of DDDFS (now deprecated). You can view the white paper [here](https://github.com/alexdao/SpeedReader/blob/master/whitepaper.pdf).
 
 ### Building
 We use Gradle as our build system. Use the `build.gradle` file to set up with
@@ -11,7 +10,7 @@ your IDE of choice.
 ### Code structure
 All source files are located in the /src/ directory. We have also provided a
 test suite found in /src/test/. You may compile the paper
-directly via the `.tex` file in /doc/ directory. Certain sections from the original DDDFS paper (written by Alex Dao, Jiawei Zhang, and Danny Oh for CS 510 Spring 2016) were reused in this paper (describing performance load balancing, workload analysis, parts of the introduction, and infrastructure). 
+directly via the `.tex` file in /doc/ directory. Certain sections from the original DDDFS paper (written by Alex Dao, Jiawei Zhang, and Danny Oh for CS 510 Spring 2016) were reused in this paper (describing performance load balancing, workload analysis, parts of the introduction, and infrastructure).
 
 ### Libraries
 App built with the help of these libs:
